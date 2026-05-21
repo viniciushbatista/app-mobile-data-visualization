@@ -1,0 +1,9 @@
+# Ambiente virtual — apenas dependências instaladas (pip), sem código do projeto
+venv/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+
+# Variáveis de ambiente (credenciais)
+.env

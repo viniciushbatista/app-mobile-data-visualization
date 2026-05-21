@@ -1,11 +1,15 @@
 import { View, Text, ScrollView } from "react-native";
 import Constants from "expo-constants";
 import { CartesianChart, Bar, Line, useChartPressState } from "victory-native";
-import Animated, { useAnimatedProps } from 'react-native-reanimated'
 import { LinearGradient, useFont, vec } from '@shopify/react-native-skia'
 import { Button, Card } from 'react-native-paper'
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dropdown } from 'react-native-element-dropdown'
+import ViewShot, { captureRef } from 'react-native-view-shot'
+import * as Sharing from 'expo-sharing'
+import { makeImageFromView } from '@shopify/react-native-skia';
+import { File, Paths } from 'expo-file-system';
+
 
 
 const staturBarHeight = Constants.statusBarHeight;
@@ -20,34 +24,58 @@ type DataType = {
     ovino: Item[];
     bovino: Item[];
     caprino: Item[];
+    galinaceo: Item[];
+    equino: Item[];
+    suino: Item[];
 };
 
 // DADOS 2020
 const data2020: DataType = {
     ovino: [
-        {meso: "0", value: 0},
+        { meso: "0", value: 0 },
         { meso: "M", value: 20 },
         { meso: "A", value: 30 },
         { meso: "B", value: 40 },
         { meso: "S", value: 45 },
     ],
     bovino: [
-        {meso: "0", value: 0},
+        { meso: "0", value: 0 },
         { meso: "M", value: 10 },
         { meso: "A", value: 20 },
         { meso: "B", value: 50 },
         { meso: "S", value: 70 },
     ],
     caprino: [
-        {meso: "0", value: 0},
+        { meso: "0", value: 0 },
         { meso: "M", value: 15 },
         { meso: "A", value: 25 },
         { meso: "B", value: 60 },
         { meso: "S", value: 80 },
     ],
+    galinaceo: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 25 },
+        { meso: "A", value: 35 },
+        { meso: "B", value: 55 },
+        { meso: "S", value: 65 },
+    ],
+    equino: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 5 },
+        { meso: "A", value: 15 },
+        { meso: "B", value: 25 },
+        { meso: "S", value: 35 },
+    ],
+    suino: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 18 },
+        { meso: "A", value: 28 },
+        { meso: "B", value: 48 },
+        { meso: "S", value: 60 },
+    ],
 };
 
-//DADOS 2021
+// DADOS 2021
 const data2021: DataType = {
     ovino: [
         { meso: "0", value: 0 },
@@ -70,9 +98,30 @@ const data2021: DataType = {
         { meso: "B", value: 65 },
         { meso: "S", value: 85 },
     ],
+    galinaceo: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 20 },
+        { meso: "A", value: 40 },
+        { meso: "B", value: 60 },
+        { meso: "S", value: 70 },
+    ],
+    equino: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 8 },
+        { meso: "A", value: 18 },
+        { meso: "B", value: 30 },
+        { meso: "S", value: 40 },
+    ],
+    suino: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 10 },
+        { meso: "A", value: 22 },
+        { meso: "B", value: 45 },
+        { meso: "S", value: 65 },
+    ],
 };
 
-//DADOS 2022
+// DADOS 2022
 const data2022: DataType = {
     ovino: [
         { meso: "0", value: 0 },
@@ -94,6 +143,27 @@ const data2022: DataType = {
         { meso: "A", value: 35 },
         { meso: "B", value: 70 },
         { meso: "S", value: 90 },
+    ],
+    galinaceo: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 30 },
+        { meso: "A", value: 45 },
+        { meso: "B", value: 65 },
+        { meso: "S", value: 80 },
+    ],
+    equino: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 10 },
+        { meso: "A", value: 20 },
+        { meso: "B", value: 35 },
+        { meso: "S", value: 50 },
+    ],
+    suino: [
+        { meso: "0", value: 0 },
+        { meso: "M", value: 15 },
+        { meso: "A", value: 30 },
+        { meso: "B", value: 55 },
+        { meso: "S", value: 75 },
     ],
 };
 
@@ -165,10 +235,37 @@ const dataDrop = [
 ];
 
 
-
 export default function Dashboard() {
 
-    const [selectedAnimal, setSelectedAnimal] = useState<"ovino" | "bovino" | "caprino" | "todos">("todos");
+    const viewRef1 = useRef(null);
+    const viewRef2 = useRef(null);
+
+    const exportarGrafico = async (ref: React.RefObject<any>, nomeArquivo: string) => {
+        try {
+            const image = await makeImageFromView(ref);
+            if (!image) return;
+
+            const base64 = image.encodeToBase64();
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            const file = new File(Paths.cache, nomeArquivo);
+            file.create({ overwrite: true });
+            file.write(bytes);
+
+            await Sharing.shareAsync(file.uri, {
+                mimeType: 'image/jpeg',
+                dialogTitle: 'Salvar gráfico',
+            });
+        } catch (err) {
+            console.error('Erro ao exportar:', err);
+        }
+    };
+
+    const [selectedAnimal, setSelectedAnimal] = useState<"ovino" | "bovino" | "caprino" | "galinaceo" | "suino" | "equino" | "todos">("todos");
 
     const [selectedYear, setSelectedYear] = useState<number>(mostRecentYear);
 
@@ -238,72 +335,79 @@ export default function Dashboard() {
                                 theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
                                 mode={selectedAnimal === "caprino" ? "contained" : "elevated"}
                                 onPress={() => setSelectedAnimal("caprino")}>Caprino</Button>
+                            <Button
+                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
+                                mode={selectedAnimal === "suino" ? "contained" : "elevated"}
+                                onPress={() => setSelectedAnimal("suino")}>Suíno</Button>
+                            <Button
+                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
+                                mode={selectedAnimal === "equino" ? "contained" : "elevated"}
+                                onPress={() => setSelectedAnimal("equino")}>Equino</Button>
+                            <Button
+                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
+                                mode={selectedAnimal === "galinaceo" ? "contained" : "elevated"}
+                                onPress={() => setSelectedAnimal("galinaceo")}>Galináceo</Button>
                         </ScrollView>
                     </View>
-                    <View style={{ height: 400, width: '95%' }} className="mt-1">
-                        <View className="items-end">
-                            <Dropdown
-                                data={dataDrop}            // dados do dropdown
-                                labelField="label"             // o campo que mostra texto
-                                valueField="value"             // o campo que guarda valor
-                                placeholder="Selecione..."     // texto quando nada selecionado
-                                value={selectedYear}                  // valor selecionado
-                                onChange={item => {
-                                    setSelectedYear(item.value);        // atualiza o estado ao selecionar
-                                    console.log("Selecionado:", item);
-                                }}
-                                style={{
-                                    width: 150,
-                                    borderWidth: 1,
-                                    borderColor: "#ccc",
-                                    borderRadius: 8,
-                                    paddingHorizontal: 8,
-                                    height: 30,
-                                }}
-                            />
-                        </View>
-
-                        <CartesianChart
-                            data={getChartData()}
-                            xKey="meso"
-                            yKeys={["value"]}
-                            axisOptions={{
-                                tickCount: 6,
-                                font,
-                                formatYLabel: (value) => `${value}TJ`
+                    <View className="items-end">
+                        <Dropdown
+                            data={dataDrop}            // dados do dropdown
+                            labelField="label"             // o campo que mostra texto
+                            valueField="value"             // o campo que guarda valor
+                            placeholder="Selecione..."     // texto quando nada selecionado
+                            value={selectedYear}                  // valor selecionado
+                            onChange={item => {
+                                setSelectedYear(item.value);        // atualiza o estado ao selecionar
+                                console.log("Selecionado:", item);
                             }}
-                            domainPadding={{ right: 50, top: 30 }}
-                        >
-                            {({ points, chartBounds }) => (
-                                <Bar
-                                    color="#2D6EFF"
-                                    chartBounds={chartBounds}
-                                    points={points.value}
-                                    barWidth={35}
-                                    animate={{
-                                        type: "timing"
-                                    }}
-                                >
-                                </Bar>
-                            )}
-                        </CartesianChart>
-                        <View className="m-4">
-                            <Text>M = Mata Paraibana</Text>
-                            <Text>A = Agreste</Text>
-                            <Text>B = Borborema</Text>
-                            <Text>S = Sertão</Text>
+                            style={{
+                                width: 150,
+                                borderWidth: 1,
+                                borderColor: "#ccc",
+                                borderRadius: 8,
+                                paddingHorizontal: 8,
+                                height: 30,
+                            }}
+                        />
+                    </View>
+                    <View ref={viewRef1} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
+                        <View style={{ height: 400, width: '95%' }} className="mt-1">
+                            <CartesianChart
+                                data={getChartData()}
+                                xKey="meso"
+                                yKeys={["value"]}
+                                axisOptions={{
+                                    tickCount: 6,
+                                    font,
+                                    formatYLabel: (value) => `${value}TJ`
+                                }}
+                                domainPadding={{ right: 50, top: 30 }}
+                            >
+                                {({ points, chartBounds }) => (
+                                    <Bar
+                                        color="#2D6EFF"
+                                        chartBounds={chartBounds}
+                                        points={points.value}
+                                        barWidth={35}
+                                        animate={{
+                                            type: "timing"
+                                        }}
+                                    >
+                                    </Bar>
+                                )}
+                            </CartesianChart>
+                            <View className="m-4">
+                                <Text>M = Mata Paraibana</Text>
+                                <Text>A = Agreste</Text>
+                                <Text>B = Borborema</Text>
+                                <Text>S = Sertão</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
                 <View className="flex-row justify-between items-center p-4">
-                    <Button icon="download" mode="text" textColor="#000000">
-                        Baixar
-                    </Button>
-                    <Button
-                        mode="text"
-                        textColor="#2D6EFF"
-                    >
-                        Ir para dados
+                    <Button icon="download" mode="text" textColor="#000000" onPress={() => exportarGrafico(viewRef1, 'grafico1.png')}>
+                        Exportar
                     </Button>
                 </View>
                 <View className="gap-4 p-4">
@@ -344,64 +448,58 @@ export default function Dashboard() {
                         </Button>
                     </ScrollView>
                 </View>
+                <View ref={viewRef2} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
+                    <View style={{ height: 400, width: '95%' }} className="mt-6 px-2">
+                        <CartesianChart
+                            data={getData()}
 
-                {/* PASSO 8: Criar o gráfico */}
-                <View style={{ height: 400, width: '95%' }} className="mt-6 px-2">
-                    <CartesianChart
-                        data={getData()}
+                            // xKey: qual campo do objeto será usado no eixo X (horizontal)
+                            xKey="year"
 
-                        // xKey: qual campo do objeto será usado no eixo X (horizontal)
-                        xKey="year"
+                            // yKeys: quais campos serão usados no eixo Y (vertical)
+                            // Aqui usamos um array porque pode ter múltiplas linhas
+                            // Mas nesse caso, só temos "value"
+                            yKeys={["value"]}
 
-                        // yKeys: quais campos serão usados no eixo Y (vertical)
-                        // Aqui usamos um array porque pode ter múltiplas linhas
-                        // Mas nesse caso, só temos "value"
-                        yKeys={["value"]}
+                            // axisOptions: configurações dos eixos
+                            axisOptions={{
+                                tickCount: 6,              // Número de marcadores no eixo Y
+                                font: fonts,                       // Fonte para os labels
+                                formatYLabel: (value) => `${value}TJ`, // Formata os valores do eixo Y
+                            }}
 
-                        // axisOptions: configurações dos eixos
-                        axisOptions={{
-                            tickCount: 6,              // Número de marcadores no eixo Y
-                            font: fonts,                       // Fonte para os labels
-                            formatYLabel: (value) => `${value}TJ`, // Formata os valores do eixo Y
-                        }}
+                            // domainPadding: espaçamento extra ao redor do gráfico
+                            domainPadding={{ right: 20, top: 30, left: 20 }}
+                        >
+                            {/* PASSO 9: Renderizar a linha */}
+                            {/* Esta função recebe "points" que contém os pontos calculados */}
+                            {({ points }) => (
+                                <Line
+                                    // points.value porque definimos yKeys={["value"]}
+                                    points={points.value}
 
-                        // domainPadding: espaçamento extra ao redor do gráfico
-                        domainPadding={{ right: 20, top: 30, left: 20 }}
-                    >
-                        {/* PASSO 9: Renderizar a linha */}
-                        {/* Esta função recebe "points" que contém os pontos calculados */}
-                        {({ points }) => (
-                            <Line
-                                // points.value porque definimos yKeys={["value"]}
-                                points={points.value}
+                                    // Cor da linha
+                                    color="#2D6EFF"
 
-                                // Cor da linha
-                                color="#2D6EFF"
+                                    // Espessura da linha
+                                    strokeWidth={3}
 
-                                // Espessura da linha
-                                strokeWidth={3}
+                                    // Animação ao renderizar
+                                    animate={{
+                                        type: "timing",
+                                        duration: 300
+                                    }}
 
-                                // Animação ao renderizar
-                                animate={{
-                                    type: "timing",
-                                    duration: 300
-                                }}
-
-                                // Tipo de curva (pode ser: "linear", "natural", "step")
-                                curveType="natural"
-                            />
-                        )}
-                    </CartesianChart>
+                                    // Tipo de curva (pode ser: "linear", "natural", "step")
+                                    curveType="natural"
+                                />
+                            )}
+                        </CartesianChart>
+                    </View>
                 </View>
                 <View className="flex-row justify-between items-center p-4">
-                    <Button icon="download" mode="text" textColor="#000000">
-                        Baixar
-                    </Button>
-                    <Button
-                        mode="text"
-                        textColor="#2D6EFF"
-                    >
-                        Ir para dados
+                    <Button icon="download" mode="text" textColor="#000000" onPress={() => exportarGrafico(viewRef2, 'grafico2.png')}>
+                        Exportar
                     </Button>
                 </View>
             </ScrollView>
