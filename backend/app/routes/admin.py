@@ -2,33 +2,26 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.database import Base, engine, get_db
+from app.database import get_db
 from app.schemas.rebanho import SeedResponse
-from app.services.import_service import executar_seed_completo
+from app.services.import_service import importar_excel
 
 router = APIRouter()
 
 
 @router.post("/seed", response_model=SeedResponse)
 def seed_database(
-    forcar: bool = Query(False, description="Apaga fatos e recarrega os Excel"),
+    forcar: bool = Query(False, description="Apaga dados e recarrega o Excel"),
     db: Session = Depends(get_db),
 ):
     settings = get_settings()
-    if not settings.mesorregiao_excel_path.exists():
-        raise HTTPException(status_code=500, detail="dataset_meso.xlsx não encontrado")
-    if not settings.municipal_excel_path.exists():
-        raise HTTPException(status_code=500, detail="data_munic.xlsx não encontrado")
-
-    Base.metadata.create_all(bind=engine)
+    if not settings.excel_path.exists():
+        raise HTTPException(
+            status_code=500, detail="data_munic_meso.xlsx não encontrado"
+        )
 
     try:
-        resultado = executar_seed_completo(
-            db,
-            settings.mesorregiao_excel_path,
-            settings.municipal_excel_path,
-            forcar=forcar,
-        )
+        resultado = importar_excel(db, settings.excel_path, limpar=forcar)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:

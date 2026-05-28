@@ -1,15 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class TotalMesorregiaoItem(BaseModel):
-    mesorregiao: str
-    total: float
-
-
-class TotaisMesorregiaoResponse(BaseModel):
+class RebanhoMesorregiaoItem(BaseModel):
     ano: int
-    substrato: str | None = None
-    dados: list[TotalMesorregiaoItem]
+    mesorregiao: str
+    substrato: str
+    quantidade: float
 
 
 class SerieItem(BaseModel):
@@ -26,6 +22,7 @@ class SerieMesorregiaoResponse(BaseModel):
 class TotalMunicipioItem(BaseModel):
     codigo_ibge: int
     municipio: str
+    mesorregiao: str
     total: float
 
 
@@ -36,8 +33,7 @@ class TotaisMunicipioResponse(BaseModel):
 
 
 class SeedResponse(BaseModel):
-    mesorregiao_linhas: int
-    municipal_linhas: int
+    linhas_importadas: int
     mesorregioes: int
     municipios: int
     substratos: int

@@ -1,13 +1,9 @@
-from app.models.mesorregiao import Mesorregiao
-from app.models.municipio import Municipio
-from app.models.rebanho_mesorregiao import RebanhoMesorregiao
-from app.models.rebanho_municipal import RebanhoMunicipal
-from app.models.substrato import Substrato
+from app.models.parametros_substrato import ParametrosSubstrato
+from app.models.rebanho_municipio import RebanhoMunicipio
+from app.models.vw_rebanho_mesorregiao import VwRebanhoMesorregiao
 
 __all__ = [
-    "Mesorregiao",
-    "Municipio",
-    "Substrato",
-    "RebanhoMesorregiao",
-    "RebanhoMunicipal",
+    "RebanhoMunicipio",
+    "VwRebanhoMesorregiao",
+    "ParametrosSubstrato",
 ]

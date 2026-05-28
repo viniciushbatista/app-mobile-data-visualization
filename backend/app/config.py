@@ -28,12 +28,8 @@ class Settings(BaseSettings):
         )
 
     @property
-    def municipal_excel_path(self) -> Path:
-        return DATA_DIR / "data_munic.xlsx"
-
-    @property
-    def mesorregiao_excel_path(self) -> Path:
-        return DATA_DIR / "dataset_meso.xlsx"
+    def excel_path(self) -> Path:
+        return DATA_DIR / "data_munic_meso.xlsx"
 
 
 @lru_cache

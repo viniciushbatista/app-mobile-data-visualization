@@ -1,5 +1,7 @@
 """
-Cria tabelas e importa os Excel para o PostgreSQL.
+Importa data_munic_meso.xlsx para rebanho_municipio.
+
+Pré-requisito: alembic upgrade head
 
 Uso (na pasta backend):
   python -m app.scripts.seed
@@ -8,8 +10,8 @@ Uso (na pasta backend):
 import argparse
 
 from app.config import get_settings
-from app.database import Base, SessionLocal, engine
-from app.services.import_service import executar_seed_completo
+from app.database import SessionLocal
+from app.services.import_service import importar_excel
 
 
 def main() -> None:
@@ -22,14 +24,10 @@ def main() -> None:
     args = parser.parse_args()
     settings = get_settings()
 
-    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        resultado = executar_seed_completo(
-            db,
-            settings.mesorregiao_excel_path,
-            settings.municipal_excel_path,
-            forcar=args.forcar,
+        resultado = importar_excel(
+            db, settings.excel_path, limpar=args.forcar
         )
         print("Seed concluído:", resultado)
     finally:

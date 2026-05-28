@@ -1,63 +1,53 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import (
-    Mesorregiao,
-    Municipio,
-    RebanhoMesorregiao,
-    RebanhoMunicipal,
-    Substrato,
-)
+from app.models import RebanhoMunicipio, VwRebanhoMesorregiao
 from app.schemas.rebanho import (
+    RebanhoMesorregiaoItem,
     SerieItem,
     SerieMesorregiaoResponse,
-    TotalMesorregiaoItem,
     TotalMunicipioItem,
-    TotaisMesorregiaoResponse,
     TotaisMunicipioResponse,
 )
 
 
-def _resolver_substrato_id(
-    db: Session, substrato: str | None
-) -> int | None:
-    if substrato is None:
-        return None
-    registro = db.query(Substrato).filter(Substrato.nome == substrato).first()
-    if registro is None:
+def _validar_substrato(db: Session, substrato: str) -> None:
+    existe = (
+        db.query(RebanhoMunicipio.substrato)
+        .filter(RebanhoMunicipio.substrato == substrato)
+        .first()
+    )
+    if existe is None:
         raise ValueError(f"Substrato não encontrado: {substrato}")
-    return registro.id
 
 
-def totais_por_mesorregiao(
+def listar_mesorregiao(
     db: Session,
     ano: int,
     substrato: str | None = None,
-) -> TotaisMesorregiaoResponse:
-    substrato_id = _resolver_substrato_id(db, substrato)
+) -> list[RebanhoMesorregiaoItem]:
+    if substrato is not None:
+        _validar_substrato(db, substrato)
 
-    query = (
-        db.query(
-            Mesorregiao.nome.label("mesorregiao"),
-            func.sum(RebanhoMesorregiao.quantidade_total).label("total"),
+    query = db.query(VwRebanhoMesorregiao).filter(VwRebanhoMesorregiao.ano == ano)
+
+    if substrato is not None:
+        query = query.filter(VwRebanhoMesorregiao.substrato == substrato)
+
+    rows = query.order_by(
+        VwRebanhoMesorregiao.mesorregiao,
+        VwRebanhoMesorregiao.substrato,
+    ).all()
+
+    return [
+        RebanhoMesorregiaoItem(
+            ano=row.ano,
+            mesorregiao=row.mesorregiao,
+            substrato=row.substrato,
+            quantidade=float(row.quantidade),
         )
-        .join(RebanhoMesorregiao.mesorregiao)
-        .filter(RebanhoMesorregiao.ano == ano)
-    )
-
-    if substrato_id is not None:
-        query = query.filter(RebanhoMesorregiao.substrato_id == substrato_id)
-
-    rows = query.group_by(Mesorregiao.id, Mesorregiao.nome).order_by(Mesorregiao.nome).all()
-
-    return TotaisMesorregiaoResponse(
-        ano=ano,
-        substrato=substrato,
-        dados=[
-            TotalMesorregiaoItem(mesorregiao=r.mesorregiao, total=float(r.total or 0))
-            for r in rows
-        ],
-    )
+        for row in rows
+    ]
 
 
 def serie_mesorregiao(
@@ -65,40 +55,42 @@ def serie_mesorregiao(
     nome_mesorregiao: str,
     substrato: str | None = None,
 ) -> SerieMesorregiaoResponse:
-    meso = db.query(Mesorregiao).filter(Mesorregiao.nome == nome_mesorregiao).first()
-    if meso is None:
-        raise ValueError(f"Mesorregião não encontrada: {nome_mesorregiao}")
+    if substrato is not None:
+        _validar_substrato(db, substrato)
 
-    substrato_id = _resolver_substrato_id(db, substrato)
+    query = db.query(VwRebanhoMesorregiao).filter(
+        VwRebanhoMesorregiao.mesorregiao == nome_mesorregiao
+    )
 
-    query = db.query(
-        RebanhoMesorregiao.ano,
-        RebanhoMesorregiao.quantidade_total,
-    ).filter(RebanhoMesorregiao.mesorregiao_id == meso.id)
+    if substrato is not None:
+        query = query.filter(VwRebanhoMesorregiao.substrato == substrato)
 
-    if substrato_id is not None:
-        query = query.filter(RebanhoMesorregiao.substrato_id == substrato_id)
+    rows = query.order_by(VwRebanhoMesorregiao.ano).all()
 
-    rows = query.order_by(RebanhoMesorregiao.ano).all()
+    if not rows:
+        existe = (
+            db.query(RebanhoMunicipio.mesorregiao)
+            .filter(RebanhoMunicipio.mesorregiao == nome_mesorregiao)
+            .first()
+        )
+        if existe is None:
+            raise ValueError(f"Mesorregião não encontrada: {nome_mesorregiao}")
 
     if substrato is None:
         aggregated: dict[int, float] = {}
         for row in rows:
-            aggregated[row.ano] = aggregated.get(row.ano, 0) + float(
-                row.quantidade_total
-            )
+            aggregated[row.ano] = aggregated.get(row.ano, 0) + float(row.quantidade)
         dados = [
-            SerieItem(ano=ano, quantidade=total)
-            for ano, total in sorted(aggregated.items())
+            SerieItem(ano=ano_val, quantidade=total)
+            for ano_val, total in sorted(aggregated.items())
         ]
     else:
         dados = [
-            SerieItem(ano=row.ano, quantidade=float(row.quantidade_total))
-            for row in rows
+            SerieItem(ano=row.ano, quantidade=float(row.quantidade)) for row in rows
         ]
 
     return SerieMesorregiaoResponse(
-        mesorregiao=meso.nome,
+        mesorregiao=nome_mesorregiao,
         substrato=substrato,
         dados=dados,
     )
@@ -109,27 +101,32 @@ def totais_por_municipio(
     ano: int,
     substrato: str | None = None,
 ) -> TotaisMunicipioResponse:
-    substrato_id = _resolver_substrato_id(db, substrato)
+    if substrato is not None:
+        _validar_substrato(db, substrato)
 
     query = (
         db.query(
-            Municipio.codigo_ibge,
-            Municipio.nome.label("municipio"),
-            func.sum(RebanhoMunicipal.quantidade).label("total"),
+            RebanhoMunicipio.codigo_ibge,
+            RebanhoMunicipio.municipio,
+            RebanhoMunicipio.mesorregiao,
+            func.sum(RebanhoMunicipio.quantidade).label("total"),
         )
-        .join(RebanhoMunicipal.municipio)
         .filter(
-            RebanhoMunicipal.ano == ano,
-            RebanhoMunicipal.dado_disponivel.is_(True),
+            RebanhoMunicipio.ano == ano,
+            RebanhoMunicipio.dado_disponivel.is_(True),
         )
     )
 
-    if substrato_id is not None:
-        query = query.filter(RebanhoMunicipal.substrato_id == substrato_id)
+    if substrato is not None:
+        query = query.filter(RebanhoMunicipio.substrato == substrato)
 
     rows = (
-        query.group_by(Municipio.codigo_ibge, Municipio.nome)
-        .order_by(Municipio.nome)
+        query.group_by(
+            RebanhoMunicipio.codigo_ibge,
+            RebanhoMunicipio.municipio,
+            RebanhoMunicipio.mesorregiao,
+        )
+        .order_by(RebanhoMunicipio.municipio)
         .all()
     )
 
@@ -140,6 +137,7 @@ def totais_por_municipio(
             TotalMunicipioItem(
                 codigo_ibge=r.codigo_ibge,
                 municipio=r.municipio,
+                mesorregiao=r.mesorregiao,
                 total=float(r.total or 0),
             )
             for r in rows
