@@ -4,6 +4,8 @@ import MapaParaiba, { MapaParaibaRef } from "../../shared/components/map/PbMap";
 import { useRef, useState, useEffect } from 'react';
 import { Dropdown } from 'react-native-element-dropdown';
 import { api } from "../../services/api";
+import { ListRowSkeleton } from "../../shared/components/SkeletonLoader";
+import EmptyState from "../../shared/components/EmptyState";
 
 const anosDisponiveis = [
   { label: '2013', value: '2013' },
@@ -237,9 +239,18 @@ export default function MapaScreen() {
           {/* LISTA EXPANSÍVEL */}
           <View style={{ height: 300 }}>
             {carregandoCidades && cidades.length === 0 ? (
-              <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-                <ActivityIndicator size="large" color="#2D6EFF" />
+              <View style={{ paddingTop: 8 }}>
+                <ListRowSkeleton />
+                <ListRowSkeleton />
+                <ListRowSkeleton />
+                <ListRowSkeleton />
               </View>
+            ) : filteredCities.length === 0 && searchQuery.length > 0 ? (
+              <EmptyState
+                icon="search-off"
+                title="Nenhuma cidade encontrada"
+                description={`Nenhum resultado para "${searchQuery}". Verifique o nome e tente novamente.`}
+              />
             ) : (
               <ScrollView nestedScrollEnabled>
                 {filteredCities.map((item) => {
@@ -254,21 +265,13 @@ export default function MapaScreen() {
                         } else {
                           setSelectedCity(item);
 
-                          // Se ainda não buscou o potencial, busca sob demanda
                           if (item.potencial === null) {
                             try {
                               const res = await api.getEnergiaMunicipio(item.codigo_ibge, Number(anoSelecionado));
                               const potencialTotal = res.resultados.reduce((acc, curr) => acc + curr.potencial_tj, 0);
                               const potencialFormatado = parseFloat(potencialTotal.toFixed(2));
-
-                              // Atualiza na lista local
                               setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: potencialFormatado } : c));
-
-                              // Atualiza o estado selecionado para mostrar na hora
-                              setSelectedCity({
-                                ...item,
-                                potencial: potencialFormatado
-                              });
+                              setSelectedCity({ ...item, potencial: potencialFormatado });
                             } catch (error) {
                               console.error('[MapaScreen] Erro ao carregar potencial do município:', error);
                             }
@@ -308,7 +311,7 @@ export default function MapaScreen() {
                       {isSelected && (
                         <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
                           {item.potencial === null ? (
-                            <ActivityIndicator size="small" color="#2D6EFF" style={{ alignSelf: 'flex-start' }} />
+                            <ListRowSkeleton />
                           ) : (
                             <View>
                               <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>

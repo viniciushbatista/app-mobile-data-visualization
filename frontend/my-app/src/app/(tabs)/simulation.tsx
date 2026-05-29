@@ -1,8 +1,9 @@
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Dropdown } from 'react-native-element-dropdown';
 import { Button, TextInput, HelperText } from "react-native-paper";
 import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { MaterialIcons } from '@expo/vector-icons';
 import { api } from "../../services/api";
 
 const dataWaste = [
@@ -26,14 +27,26 @@ const anoAtualStr = String(anoAtual);
 
 export default function Simulation() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    prefill_substrato?: string;
+    prefill_quantidade?: string;
+    prefill_ano?: string;
+    prefill_regiao?: string;
+    prefill_codigoIbge?: string;
+    prefill_municipioNome?: string;
+  }>();
 
-  const [substrato, setSubstrato] = useState('');
-  const [quantidade, setQuantidade] = useState('');
-  const [ano, setAno] = useState('');
-  const [regiao, setRegiao] = useState('');
+  const [substrato, setSubstrato] = useState(params.prefill_substrato || '');
+  const [quantidade, setQuantidade] = useState(params.prefill_quantidade || '');
+  const [ano, setAno] = useState(params.prefill_ano || '');
+  const [regiao, setRegiao] = useState(params.prefill_regiao || '');
 
   const [cidadesList, setCidadesList] = useState<{ label: string; value: string }[]>([]);
-  const [selectedCity, setSelectedCity] = useState<{ label: string; value: string } | null>(null);
+  const [selectedCity, setSelectedCity] = useState<{ label: string; value: string } | null>(
+    params.prefill_codigoIbge && params.prefill_municipioNome
+      ? { label: params.prefill_municipioNome, value: params.prefill_codigoIbge }
+      : null
+  );
   const [carregandoCidades, setCarregandoCidades] = useState(false);
 
   const [tentouSimular, setTentouSimular] = useState(false);
@@ -93,7 +106,29 @@ export default function Simulation() {
 
   return (
     <View className="flex-1 bg-white">
-      <View className="mt-5 gap-4 p-6">
+      {/* Barra de ações do topo */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingTop: 12 }}>
+        <TouchableOpacity
+          onPress={() => router.push('/simulation-history')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            backgroundColor: '#EFF6FF',
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#BFDBFE',
+          }}
+          activeOpacity={0.75}
+        >
+          <MaterialIcons name="history" size={16} color="#2D6EFF" />
+          <Text style={{ fontSize: 13, color: '#2D6EFF', fontWeight: '600' }}>Histórico</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View className="mt-3 gap-4 p-6">
 
         {/* SUBSTRATO */}
         <View>

@@ -1,7 +1,7 @@
 import { View, Text, ScrollView } from "react-native";
 import { CartesianChart, Line, Area, useChartPressState } from "victory-native";
 import { useFont, Circle, Text as SkiaText } from '@shopify/react-native-skia'
-import { Button, Card, ActivityIndicator } from 'react-native-paper'
+import { Button, Card } from 'react-native-paper'
 import { useRef, useState, useEffect } from "react";
 import * as Sharing from 'expo-sharing'
 import { makeImageFromView } from '@shopify/react-native-skia';
@@ -10,6 +10,8 @@ import { useLocalSearchParams } from "expo-router";
 import type { SharedValue } from "react-native-reanimated";
 import { useDerivedValue } from "react-native-reanimated";
 import { api, SUBSTRATO_LABEL_MAP } from "../services/api";
+import { useSimulationHistory } from "../shared/hooks/useSimulationHistory";
+import { ChartCardSkeleton, ResultCardSkeleton } from "../shared/components/SkeletonLoader";
 
 // Componente tooltip com círculo + label de valor
 function ToolTip({
@@ -61,6 +63,7 @@ export default function SimulationOutput() {
   const viewRef = useRef(null);
   const font = useFont(require("./../../assets/static/Inter_18pt-Regular.ttf"));
   const tooltipFont = useFont(require("./../../assets/static/Inter_18pt-Bold.ttf"), 11);
+  const { saveSimulation } = useSimulationHistory();
 
   const [carregando, setCarregando] = useState(true);
   const [dadosPredicao, setDadosPredicao] = useState<{ ano: number; value: number }[]>([]);
@@ -149,9 +152,23 @@ export default function SimulationOutput() {
           ...projecao
         ];
 
+        const resultadoTJ = parseFloat(valorSimulado.toFixed(2));
         setDadosPredicao(dadosCompletos);
-        setResultadoFinal(parseFloat(valorSimulado.toFixed(2)));
+        setResultadoFinal(resultadoTJ);
         setAnoInicio(historicoReais[0].ano);
+
+        // Salvar no histórico automaticamente
+        saveSimulation({
+          substrato,
+          localizacao: codigoIbge ? (municipioNome || codigoIbge) : regiao,
+          tipoLocalizacao: codigoIbge ? 'municipio' : 'mesorregiao',
+          anoAlvo: ano,
+          resultadoTJ,
+          quantidade,
+          regiao: regiao || '',
+          codigoIbge: codigoIbge || undefined,
+          municipioNome: municipioNome || undefined,
+        });
       } catch (err) {
         console.error('[SimulationOutput] Erro na simulação:', err);
         // Fallback matemático se falhar totalmente
@@ -210,11 +227,10 @@ export default function SimulationOutput() {
   return (
     <View className="flex-1 bg-white">
       {carregando ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-          <ActivityIndicator size="large" color="#2D6EFF" />
-          <Text style={{ marginTop: 16, color: "#4B5563", fontSize: 16 }}>
-            Processando simulação com dados históricos...
-          </Text>
+        <View style={{ flex: 1, padding: 16, gap: 12 }}>
+          <ResultCardSkeleton />
+          <ResultCardSkeleton />
+          <ChartCardSkeleton />
         </View>
       ) : (
         <ScrollView>

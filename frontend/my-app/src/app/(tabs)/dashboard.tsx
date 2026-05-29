@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import Constants from "expo-constants";
 import { CartesianChart, Bar, Line, Area, useChartPressState } from "victory-native";
 import { LinearGradient, useFont, vec } from '@shopify/react-native-skia'
-import { Button, Card, ActivityIndicator } from 'react-native-paper'
+import { Button, Card } from 'react-native-paper'
 import { useState, useRef, useEffect } from "react";
 import { Dropdown } from 'react-native-element-dropdown'
 import ViewShot, { captureRef } from 'react-native-view-shot'
@@ -10,6 +10,8 @@ import * as Sharing from 'expo-sharing'
 import { makeImageFromView } from '@shopify/react-native-skia';
 import { File, Paths } from 'expo-file-system';
 import { api, SUBSTRATO_MAP, REGION_NAME_MAP } from "../../services/api";
+import { ChartCardSkeleton } from "../../shared/components/SkeletonLoader";
+import EmptyState from "../../shared/components/EmptyState";
 
 const staturBarHeight = Constants.statusBarHeight;
 
@@ -129,14 +131,14 @@ export default function Dashboard() {
     };
 
     // Carrega dados do Gráfico de Linhas (Série histórica de potencial energético da mesorregião)
+    // O gráfico de linha sempre exibe o TOTAL (soma de todos os substratos) — independente do filtro de pill chips
     const carregarDadosGraficoLinhas = async () => {
         setCarregandoLinhas(true);
         try {
             const nomeMesoReal = REGION_NAME_MAP[selectedRegion];
-            const substratoDb = selectedAnimal === "todos" ? undefined : SUBSTRATO_MAP[selectedAnimal];
 
-            // 1 única chamada retorna toda a série histórica (substitui ~48 chamadas paralelas)
-            const serieRes = await api.getEnergiaMesorregioSerie(nomeMesoReal, substratoDb);
+            // Sempre passa undefined para buscar o total de todos os substratos
+            const serieRes = await api.getEnergiaMesorregioSerie(nomeMesoReal, undefined);
 
             if (!serieRes || !serieRes.dados || serieRes.dados.length === 0) {
                 setLineChartData([]);
@@ -161,7 +163,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         carregarDadosGraficoLinhas();
-    }, [selectedAnimal, selectedRegion]);
+    }, [selectedRegion]); // Apenas a região — o filtro de substrato NÃO afeta o gráfico de linha
 
     const fonts = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
     const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
@@ -238,8 +240,8 @@ export default function Dashboard() {
                     <View ref={viewRef1} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
                         <View style={{ height: 400, width: '95%' }} className="mt-1 justify-center">
                             {carregandoBarras ? (
-                                <ActivityIndicator size="large" color="#2D6EFF" />
-                            ) : (
+                            <ChartCardSkeleton />
+                        ) : (
                                 <>
                                     <CartesianChart
                                         data={barChartData}
@@ -325,11 +327,13 @@ export default function Dashboard() {
                 <View ref={viewRef2} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
                     <View style={{ height: 400, width: '95%' }} className="mt-6 px-2 justify-center">
                         {carregandoLinhas ? (
-                            <ActivityIndicator size="large" color="#2D6EFF" />
+                            <ChartCardSkeleton />
                         ) : lineChartData.length === 0 ? (
-                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                                <Text style={{ color: 'gray' }}>Sem dados históricos suficientes para desenhar a linha do tempo</Text>
-                            </View>
+                            <EmptyState
+                              icon="show-chart"
+                              title="Sem dados históricos"
+                              description="Não há dados suficientes para o substrato e região selecionados."
+                            />
                         ) : (
                             <CartesianChart
                                 data={lineChartData}
