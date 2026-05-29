@@ -1,239 +1,36 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import Constants from "expo-constants";
-import { CartesianChart, Bar, Line, useChartPressState } from "victory-native";
+import { CartesianChart, Bar, Line, Area, useChartPressState } from "victory-native";
 import { LinearGradient, useFont, vec } from '@shopify/react-native-skia'
-import { Button, Card } from 'react-native-paper'
-import { useState, useRef } from "react";
+import { Button, Card, ActivityIndicator } from 'react-native-paper'
+import { useState, useRef, useEffect } from "react";
 import { Dropdown } from 'react-native-element-dropdown'
 import ViewShot, { captureRef } from 'react-native-view-shot'
 import * as Sharing from 'expo-sharing'
 import { makeImageFromView } from '@shopify/react-native-skia';
 import { File, Paths } from 'expo-file-system';
-
-
+import { api, SUBSTRATO_MAP, REGION_NAME_MAP } from "../../services/api";
 
 const staturBarHeight = Constants.statusBarHeight;
-
 
 type Item = {
     meso: string;
     value: number;
 };
 
-type DataType = {
-    ovino: Item[];
-    bovino: Item[];
-    caprino: Item[];
-    galinaceo: Item[];
-    equino: Item[];
-    suino: Item[];
-};
-
-// DADOS 2020
-const data2020: DataType = {
-    ovino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 20 },
-        { meso: "A", value: 30 },
-        { meso: "B", value: 40 },
-        { meso: "S", value: 45 },
-    ],
-    bovino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 10 },
-        { meso: "A", value: 20 },
-        { meso: "B", value: 50 },
-        { meso: "S", value: 70 },
-    ],
-    caprino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 15 },
-        { meso: "A", value: 25 },
-        { meso: "B", value: 60 },
-        { meso: "S", value: 80 },
-    ],
-    galinaceo: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 25 },
-        { meso: "A", value: 35 },
-        { meso: "B", value: 55 },
-        { meso: "S", value: 65 },
-    ],
-    equino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 5 },
-        { meso: "A", value: 15 },
-        { meso: "B", value: 25 },
-        { meso: "S", value: 35 },
-    ],
-    suino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 18 },
-        { meso: "A", value: 28 },
-        { meso: "B", value: 48 },
-        { meso: "S", value: 60 },
-    ],
-};
-
-// DADOS 2021
-const data2021: DataType = {
-    ovino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 7 },
-        { meso: "A", value: 35 },
-        { meso: "B", value: 45 },
-        { meso: "S", value: 50 },
-    ],
-    bovino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 12 },
-        { meso: "A", value: 25 },
-        { meso: "B", value: 55 },
-        { meso: "S", value: 75 },
-    ],
-    caprino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 5 },
-        { meso: "A", value: 30 },
-        { meso: "B", value: 65 },
-        { meso: "S", value: 85 },
-    ],
-    galinaceo: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 20 },
-        { meso: "A", value: 40 },
-        { meso: "B", value: 60 },
-        { meso: "S", value: 70 },
-    ],
-    equino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 8 },
-        { meso: "A", value: 18 },
-        { meso: "B", value: 30 },
-        { meso: "S", value: 40 },
-    ],
-    suino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 10 },
-        { meso: "A", value: 22 },
-        { meso: "B", value: 45 },
-        { meso: "S", value: 65 },
-    ],
-};
-
-// DADOS 2022
-const data2022: DataType = {
-    ovino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 10 },
-        { meso: "A", value: 40 },
-        { meso: "B", value: 50 },
-        { meso: "S", value: 55 },
-    ],
-    bovino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 15 },
-        { meso: "A", value: 30 },
-        { meso: "B", value: 60 },
-        { meso: "S", value: 80 },
-    ],
-    caprino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 8 },
-        { meso: "A", value: 35 },
-        { meso: "B", value: 70 },
-        { meso: "S", value: 90 },
-    ],
-    galinaceo: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 30 },
-        { meso: "A", value: 45 },
-        { meso: "B", value: 65 },
-        { meso: "S", value: 80 },
-    ],
-    equino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 10 },
-        { meso: "A", value: 20 },
-        { meso: "B", value: 35 },
-        { meso: "S", value: 50 },
-    ],
-    suino: [
-        { meso: "0", value: 0 },
-        { meso: "M", value: 15 },
-        { meso: "A", value: 30 },
-        { meso: "B", value: 55 },
-        { meso: "S", value: 75 },
-    ],
-};
-
-// OBJETO QUE AGRUPA TODOS OS ANOS
-const dataByYear: Record<number, DataType> = {
-    2020: data2020,
-    2021: data2021,
-    2022: data2022,
-};
-
-// ANOS DISPONÍVEIS
-const availableYears = [2020, 2021, 2022];
-const mostRecentYear = Math.max(...availableYears); // 2022
-
-// PASSO 1: Definir o tipo dos dados
 type YearData = {
     year: string;
     value: number;
 };
 
-// PASSO 2: Definir o tipo das regiões disponíveis
-type RegionDataType = {
-    mata: YearData[];
-    agreste: YearData[];
-    borborema: YearData[];
-    sertao: YearData[];
-};
-
-// PASSO 3: Criar o objeto com todos os dados
-const regionData: RegionDataType = {
-    mata: [
-        { year: "2019", value: 120 },
-        { year: "2020", value: 135 },
-        { year: "2021", value: 100 },
-        { year: "2022", value: 165 },
-        { year: "2023", value: 90 },
-        { year: "2024", value: 195 },
-    ],
-    agreste: [
-        { year: "2019", value: 200 },
-        { year: "2020", value: 95 },
-        { year: "2021", value: 110 },
-        { year: "2022", value: 125 },
-        { year: "2023", value: 140 },
-        { year: "2024", value: 155 },
-    ],
-    borborema: [
-        { year: "2019", value: 45 },
-        { year: "2020", value: 52 },
-        { year: "2021", value: 55 },
-        { year: "2022", value: 68 },
-        { year: "2023", value: 100 },
-        { year: "2024", value: 82 },
-    ],
-    sertao: [
-        { year: "2019", value: 20 },
-        { year: "2020", value: 63 },
-        { year: "2021", value: 72 },
-        { year: "2022", value: 58 },
-        { year: "2023", value: 88 },
-        { year: "2024", value: 200 },
-    ],
-};
+const availableYears = [2020, 2021, 2022];
+const mostRecentYear = Math.max(...availableYears); // 2022
 
 const dataDrop = [
     { label: '2020', value: 2020 },
     { label: '2021', value: 2021 },
     { label: '2022', value: 2022 },
 ];
-
 
 export default function Dashboard() {
 
@@ -266,47 +63,108 @@ export default function Dashboard() {
     };
 
     const [selectedAnimal, setSelectedAnimal] = useState<"ovino" | "bovino" | "caprino" | "galinaceo" | "suino" | "equino" | "todos">("todos");
-
     const [selectedYear, setSelectedYear] = useState<number>(mostRecentYear);
-
-    const getChartData = (): Item[] => {
-        // SELECIONA OS DADOS DO ANO
-        const data = dataByYear[selectedYear]; // MUDANÇA AQUI!
-
-        if (selectedAnimal === "todos") {
-            const result: Record<string, number> = {};
-
-            // USA OS DADOS DO ANO SELECIONADO
-            const all: Item[] = [...data.ovino, ...data.bovino, ...data.caprino];
-
-            all.forEach((item: Item) => {
-                if (!result[item.meso]) result[item.meso] = 0;
-                result[item.meso] += item.value;
-            });
-
-            return Object.entries(result).map(([meso, value]) => ({
-                meso,
-                value,
-            }));
-        }
-
-        return data[selectedAnimal];
-    };
-
     const [selectedRegion, setSelectedRegion] = useState<"mata" | "agreste" | "borborema" | "sertao">("mata");
 
-    const fonts = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
+    const [barChartData, setBarChartData] = useState<Item[]>([
+        { meso: "0", value: 0 },
+        { meso: "M", value: 0 },
+        { meso: "A", value: 0 },
+        { meso: "B", value: 0 },
+        { meso: "S", value: 0 },
+    ]);
+    const [lineChartData, setLineChartData] = useState<YearData[]>([]);
 
-    // PASSO 6: Criar função que retorna os dados da região selecionada
-    const getData = () => {
-        // Retorna apenas os dados da região selecionada
-        return regionData[selectedRegion];
+    const [carregandoBarras, setCarregandoBarras] = useState(false);
+    const [carregandoLinhas, setCarregandoLinhas] = useState(false);
+
+    // Carrega dados do Gráfico de Barras (Mesorregiões do ano/substrato)
+    const carregarDadosGraficoBarras = async () => {
+        setCarregandoBarras(true);
+        try {
+            const substratoDb = selectedAnimal === "todos" ? undefined : SUBSTRATO_MAP[selectedAnimal];
+
+            const mapaLabel: Record<string, string> = {
+                'Mata Paraibana': 'M',
+                'Agreste Paraibano': 'A',
+                'Borborema': 'B',
+                'Sertão Paraibano': 'S',
+            };
+
+            if (selectedAnimal === "todos") {
+                // Modo "todos": 1 única chamada retorna todas as regiões
+                const totais = await api.getEnergiaMesorregioesTotais(selectedYear);
+                const resultados = totais.map(item => ({
+                    meso: mapaLabel[item.mesorregiao] ?? item.mesorregiao,
+                    value: parseFloat(item.potencial_tj.toFixed(2))
+                }));
+                setBarChartData([{ meso: "0", value: 0 }, ...resultados]);
+            } else {
+                // Substrato específico: 4 chamadas em paralelo
+                const regioes = [
+                    { key: 'Mata Paraibana', label: 'M' },
+                    { key: 'Agreste Paraibano', label: 'A' },
+                    { key: 'Borborema', label: 'B' },
+                    { key: 'Sertão Paraibano', label: 'S' }
+                ];
+
+                const promessas = regioes.map(async (r) => {
+                    try {
+                        const res = await api.getEnergiaMesorregiao(r.key, selectedYear, substratoDb);
+                        return { meso: r.label, value: parseFloat(res.potencial_tj.toFixed(2)) };
+                    } catch (err) {
+                        console.error(`Erro ao carregar dados do gráfico de barras para ${r.key}:`, err);
+                        return { meso: r.label, value: 0 };
+                    }
+                });
+
+                const resultados = await Promise.all(promessas);
+                setBarChartData([{ meso: "0", value: 0 }, ...resultados]);
+            }
+        } catch (error) {
+            console.error('[Dashboard] Erro geral ao carregar dados do gráfico de barras:', error);
+        } finally {
+            setCarregandoBarras(false);
+        }
     };
 
+    // Carrega dados do Gráfico de Linhas (Série histórica de potencial energético da mesorregião)
+    const carregarDadosGraficoLinhas = async () => {
+        setCarregandoLinhas(true);
+        try {
+            const nomeMesoReal = REGION_NAME_MAP[selectedRegion];
+            const substratoDb = selectedAnimal === "todos" ? undefined : SUBSTRATO_MAP[selectedAnimal];
 
-    const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"))
+            // 1 única chamada retorna toda a série histórica (substitui ~48 chamadas paralelas)
+            const serieRes = await api.getEnergiaMesorregioSerie(nomeMesoReal, substratoDb);
 
-    //constalue, setValue] = useState<string | null>(null);
+            if (!serieRes || !serieRes.dados || serieRes.dados.length === 0) {
+                setLineChartData([]);
+                return;
+            }
+
+            const resultados = serieRes.dados.map(item => ({
+                year: String(item.ano),
+                value: parseFloat(item.potencial_tj.toFixed(2)),
+            }));
+            setLineChartData(resultados);
+        } catch (error) {
+            console.error('[Dashboard] Erro geral ao carregar dados do gráfico de linhas:', error);
+        } finally {
+            setCarregandoLinhas(false);
+        }
+    };
+
+    useEffect(() => {
+        carregarDadosGraficoBarras();
+    }, [selectedAnimal, selectedYear]);
+
+    useEffect(() => {
+        carregarDadosGraficoLinhas();
+    }, [selectedAnimal, selectedRegion]);
+
+    const fonts = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
+    const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
 
     return (
         <View className="flex-1 bg-white ">
@@ -316,37 +174,44 @@ export default function Dashboard() {
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ gap: 12, paddingHorizontal: 10 }}
+                            contentContainerStyle={{ gap: 10, paddingHorizontal: 4 }}
                             className="mt-8"
                         >
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "todos" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("todos")}>Todos</Button>
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "ovino" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("ovino")}>Ovino</Button>
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "bovino" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("bovino")}>Bovino</Button>
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "caprino" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("caprino")}>Caprino</Button>
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "suino" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("suino")}>Suíno</Button>
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "equino" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("equino")}>Equino</Button>
-                            <Button
-                                theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                                mode={selectedAnimal === "galinaceo" ? "contained" : "elevated"}
-                                onPress={() => setSelectedAnimal("galinaceo")}>Galináceo</Button>
+                            {[
+                                { id: "todos", label: "Todos" },
+                                { id: "ovino", label: "Ovino" },
+                                { id: "bovino", label: "Bovino" },
+                                { id: "caprino", label: "Caprino" },
+                                { id: "suino", label: "Suíno" },
+                                { id: "equino", label: "Equino" },
+                                { id: "galinaceo", label: "Galináceo" },
+                            ].map((item) => {
+                                const isSelected = selectedAnimal === item.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        onPress={() => setSelectedAnimal(item.id as any)}
+                                        style={{
+                                            backgroundColor: isSelected ? "#2D6EFF" : "#F1F5F9",
+                                            paddingHorizontal: 16,
+                                            paddingVertical: 8,
+                                            borderRadius: 20,
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        <Text
+                                            style={{
+                                                color: isSelected ? "#FFFFFF" : "#4B5563",
+                                                fontWeight: isSelected ? "bold" : "500",
+                                                fontSize: 14,
+                                            }}
+                                        >
+                                            {item.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </ScrollView>
                     </View>
                     <View className="items-end">
@@ -371,37 +236,42 @@ export default function Dashboard() {
                         />
                     </View>
                     <View ref={viewRef1} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
-                        <View style={{ height: 400, width: '95%' }} className="mt-1">
-                            <CartesianChart
-                                data={getChartData()}
-                                xKey="meso"
-                                yKeys={["value"]}
-                                axisOptions={{
-                                    tickCount: 6,
-                                    font,
-                                    formatYLabel: (value) => `${value}TJ`
-                                }}
-                                domainPadding={{ right: 50, top: 30 }}
-                            >
-                                {({ points, chartBounds }) => (
-                                    <Bar
-                                        color="#2D6EFF"
-                                        chartBounds={chartBounds}
-                                        points={points.value}
-                                        barWidth={35}
-                                        animate={{
-                                            type: "timing"
+                        <View style={{ height: 400, width: '95%' }} className="mt-1 justify-center">
+                            {carregandoBarras ? (
+                                <ActivityIndicator size="large" color="#2D6EFF" />
+                            ) : (
+                                <>
+                                    <CartesianChart
+                                        data={barChartData}
+                                        xKey="meso"
+                                        yKeys={["value"]}
+                                        axisOptions={{
+                                            tickCount: 6,
+                                            font,
+                                            formatYLabel: (value) => `${value}TJ`
                                         }}
+                                        domainPadding={{ right: 50, top: 30 }}
                                     >
-                                    </Bar>
-                                )}
-                            </CartesianChart>
-                            <View className="m-4">
-                                <Text>M = Mata Paraibana</Text>
-                                <Text>A = Agreste</Text>
-                                <Text>B = Borborema</Text>
-                                <Text>S = Sertão</Text>
-                            </View>
+                                        {({ points, chartBounds }) => (
+                                            <Bar
+                                                color="#2D6EFF"
+                                                chartBounds={chartBounds}
+                                                points={points.value}
+                                                barWidth={35}
+                                                animate={{
+                                                    type: "timing"
+                                                }}
+                                            />
+                                        )}
+                                    </CartesianChart>
+                                    <View className="m-4">
+                                        <Text>M = Mata Paraibana</Text>
+                                        <Text>A = Agreste</Text>
+                                        <Text>B = Borborema</Text>
+                                        <Text>S = Sertão</Text>
+                                    </View>
+                                </>
+                            )}
                         </View>
                     </View>
                 </View>
@@ -414,87 +284,108 @@ export default function Dashboard() {
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ gap: 12, paddingHorizontal: 10 }}
+                        contentContainerStyle={{ gap: 10, paddingHorizontal: 4 }}
                         className="mt-8"
                     >
-                        {/* Cada botão muda o estado selectedRegion quando clicado */}
-                        <Button
-                            theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                            mode={selectedRegion === "mata" ? "contained" : "elevated"}
-                            onPress={() => setSelectedRegion("mata")}
-                        >
-                            Mata
-                        </Button>
-                        <Button
-                            theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                            mode={selectedRegion === "agreste" ? "contained" : "elevated"}
-                            onPress={() => setSelectedRegion("agreste")}
-                        >
-                            Agreste
-                        </Button>
-                        <Button
-                            theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                            mode={selectedRegion === "borborema" ? "contained" : "elevated"}
-                            onPress={() => setSelectedRegion("borborema")}
-                        >
-                            Borborema
-                        </Button>
-                        <Button
-                            theme={{ colors: { primary: 'black', elevation: { level1: '#EBEBEB' } } }}
-                            mode={selectedRegion === "sertao" ? "contained" : "elevated"}
-                            onPress={() => setSelectedRegion("sertao")}
-                        >
-                            Sertão
-                        </Button>
+                        {[
+                            { id: "mata", label: "Mata" },
+                            { id: "agreste", label: "Agreste" },
+                            { id: "borborema", label: "Borborema" },
+                            { id: "sertao", label: "Sertão" },
+                        ].map((item) => {
+                            const isSelected = selectedRegion === item.id;
+                            return (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    onPress={() => setSelectedRegion(item.id as any)}
+                                    style={{
+                                        backgroundColor: isSelected ? "#2D6EFF" : "#F1F5F9",
+                                        paddingHorizontal: 16,
+                                        paddingVertical: 8,
+                                        borderRadius: 20,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text
+                                        style={{
+                                            color: isSelected ? "#FFFFFF" : "#4B5563",
+                                            fontWeight: isSelected ? "bold" : "500",
+                                            fontSize: 14,
+                                        }}
+                                    >
+                                        {item.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
                 </View>
                 <View ref={viewRef2} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
-                    <View style={{ height: 400, width: '95%' }} className="mt-6 px-2">
-                        <CartesianChart
-                            data={getData()}
+                    <View style={{ height: 400, width: '95%' }} className="mt-6 px-2 justify-center">
+                        {carregandoLinhas ? (
+                            <ActivityIndicator size="large" color="#2D6EFF" />
+                        ) : lineChartData.length === 0 ? (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <Text style={{ color: 'gray' }}>Sem dados históricos suficientes para desenhar a linha do tempo</Text>
+                            </View>
+                        ) : (
+                            <CartesianChart
+                                data={lineChartData}
 
-                            // xKey: qual campo do objeto será usado no eixo X (horizontal)
-                            xKey="year"
+                                // xKey: qual campo do objeto será usado no eixo X (horizontal)
+                                xKey="year"
 
-                            // yKeys: quais campos serão usados no eixo Y (vertical)
-                            // Aqui usamos um array porque pode ter múltiplas linhas
-                            // Mas nesse caso, só temos "value"
-                            yKeys={["value"]}
+                                // yKeys: quais campos serão usados no eixo Y (vertical)
+                                // Aqui usamos um array porque pode ter múltiplas linhas
+                                // Mas nesse caso, só temos "value"
+                                yKeys={["value"]}
 
-                            // axisOptions: configurações dos eixos
-                            axisOptions={{
-                                tickCount: 6,              // Número de marcadores no eixo Y
-                                font: fonts,                       // Fonte para os labels
-                                formatYLabel: (value) => `${value}TJ`, // Formata os valores do eixo Y
-                            }}
+                                // axisOptions: configurações dos eixos
+                                axisOptions={{
+                                    tickCount: 6,              // Número de marcadores no eixo Y
+                                    font: fonts,                       // Fonte para os labels
+                                    formatYLabel: (value) => `${value}TJ`, // Formata os valores do eixo Y
+                                }}
 
-                            // domainPadding: espaçamento extra ao redor do gráfico
-                            domainPadding={{ right: 20, top: 30, left: 20 }}
-                        >
-                            {/* PASSO 9: Renderizar a linha */}
-                            {/* Esta função recebe "points" que contém os pontos calculados */}
-                            {({ points }) => (
-                                <Line
-                                    // points.value porque definimos yKeys={["value"]}
-                                    points={points.value}
+                                // domainPadding: espaçamento extra ao redor do gráfico
+                                domainPadding={{ right: 20, top: 30, left: 20 }}
+                            >
+                                {/* PASSO 9: Renderizar a linha */}
+                                {/* Esta função recebe "points" que contém os pontos calculados */}
+                                {({ points, chartBounds }) => (
+                                    <>
+                                        <Area
+                                            points={points.value}
+                                            y0={chartBounds.bottom}
+                                            color="rgba(45, 110, 255, 0.12)"
+                                            animate={{ type: "timing", duration: 300 }}
+                                            curveType="natural"
+                                        />
+                                        <Line
+                                            // points.value porque definimos yKeys={["value"]}
+                                            points={points.value}
 
-                                    // Cor da linha
-                                    color="#2D6EFF"
+                                            // Cor da linha
+                                            color="#2D6EFF"
 
-                                    // Espessura da linha
-                                    strokeWidth={3}
+                                            // Espessura da linha
+                                            strokeWidth={3}
 
-                                    // Animação ao renderizar
-                                    animate={{
-                                        type: "timing",
-                                        duration: 300
-                                    }}
+                                            // Animação ao renderizar
+                                            animate={{
+                                                type: "timing",
+                                                duration: 300
+                                            }}
 
-                                    // Tipo de curva (pode ser: "linear", "natural", "step")
-                                    curveType="natural"
-                                />
-                            )}
-                        </CartesianChart>
+                                            // Tipo de curva (pode ser: "linear", "natural", "step")
+                                            curveType="natural"
+                                        />
+                                    </>
+                                )}
+                            </CartesianChart>
+                        )}
                     </View>
                 </View>
                 <View className="flex-row justify-between items-center p-4">

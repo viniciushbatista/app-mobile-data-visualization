@@ -13,6 +13,7 @@ interface MapaParaibaProps {
 export interface MapaParaibaRef {
   exportarMapa: () => void;
   atualizarAno: (ano: string) => void;
+  atualizarDados: (dados: { name: string; value: number }[]) => void;
 }
 
 // 2. Troca React.FC por forwardRef
@@ -20,7 +21,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
   ({ onRegionPress }, ref) => {
     const webViewRef = useRef<WebView>(null);
 
-    // 3. Expõe a função exportarMapa para o componente pai
+    // 3. Expõe as funções para o componente pai
     useImperativeHandle(ref, () => ({
       exportarMapa: () => {
         webViewRef.current?.injectJavaScript('exportarMapa(); true;');
@@ -28,6 +29,10 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
       atualizarAno: (ano: string) => {
         // Envia o ano para dentro do WebView
         webViewRef.current?.injectJavaScript(`atualizarMapa('${ano}'); true;`);
+      },
+      atualizarDados: (dados: { name: string; value: number }[]) => {
+        const dadosJson = JSON.stringify(dados);
+        webViewRef.current?.injectJavaScript(`window.atualizarDados(${dadosJson}); true;`);
       }
     }));
 
@@ -112,51 +117,42 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
           blue: ['#e3f2fd', '#90caf9', '#42a5f5', '#1976d2', '#0d47a1']
         };
 
-        const dadosPorAno = {
-          '2021': [
-            { name: 'Mata Paraibana', value: 1200000 },
-            { name: 'Agreste Paraibano', value: 800000 },
-            { name: 'Borborema', value: 350000 },
-            { name: 'Sertão Paraibano', value: 400000 }
-          ],
-          '2022': [
-            { name: 'Mata Paraibana', value: 1300000 },
-            { name: 'Agreste Paraibano', value: 850000 },
-            { name: 'Borborema', value: 370000 },
-            { name: 'Sertão Paraibano', value: 420000 }
-          ],
-          '2023': [
-            { name: 'Mata Paraibana', value: 1400000 },
-            { name: 'Agreste Paraibano', value: 900000 },
-            { name: 'Borborema', value: 400000 },
-            { name: 'Sertão Paraibano', value: 450000 }
-          ]
-        };
+        window.dadosMapa = [
+          { name: 'Mata Paraibana', value: 0 },
+          { name: 'Agreste Paraibano', value: 0 },
+          { name: 'Borborema', value: 0 },
+          { name: 'Sertão Paraibano', value: 0 }
+        ];
 
         const mapaCodigosNomes = {
-          '2501': 'Mata Paraibana',
-          '2502': 'Agreste Paraibano', 
-          '2503': 'Borborema',
-          '2504': 'Sertão Paraibano'
+          '2501': 'Sertão Paraibano',
+          '2502': 'Borborema',
+          '2503': 'Agreste Paraibano',
+          '2504': 'Mata Paraibana'
         };
 
         let chart = null;
         let selectedRegion = null;
         let anoAtual = '2021';
 
+        window.atualizarDados = function(dados) {
+          if (!dados || dados.length === 0) return;
+          window.dadosMapa = dados;
+          if (chart) {
+            chart.setOption({
+              visualMap: {
+                max: Math.max(...dados.map(d => d.value), 1)
+              },
+              series: [{ data: dados }]
+            });
+          }
+        };
+
         function atualizarMapa(ano) {
           anoAtual = ano;
-
           document.querySelectorAll('.btn-ano').forEach(btn => {
             btn.classList.toggle('ativo', btn.dataset.ano === ano);
           });
-
-          if (chart) {
-            selectedRegion = null;
-            chart.setOption({
-              series: [{ data: dadosPorAno[ano] }]
-            });
-          }
         }
 
         function exportarMapa() {
@@ -194,6 +190,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
             chart = echarts.init(document.getElementById('main'));
             echarts.registerMap('PB', geoJSON);
 
+            const maxVal = Math.max(...window.dadosMapa.map(d => d.value), 1);
             const option = {
               grid: { top: 10, bottom: 60, left: 10, right: 10 },
               tooltip: {
@@ -206,7 +203,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
               },
               visualMap: {
                 min: 0,
-                max: Math.max(...dadosPorAno[anoAtual].map(d => d.value)),
+                max: maxVal,
                 text: ['Alto', 'Baixo'],
                 inRange: { color: colorSchemes.blue },
                 orient: 'horizontal',
@@ -241,7 +238,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
                   borderColor: '#fff',
                   borderWidth: 1.5
                 },
-                data: dadosPorAno[anoAtual]
+                data: window.dadosMapa
               }]
             };
 

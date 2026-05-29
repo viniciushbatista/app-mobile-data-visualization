@@ -1,8 +1,9 @@
 import { View, Text } from "react-native";
 import { Dropdown } from 'react-native-element-dropdown';
 import { Button, TextInput, HelperText } from "react-native-paper";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { api } from "../../services/api";
 
 const dataWaste = [
   { label: 'Suíno', value: '1' },
@@ -31,26 +32,64 @@ export default function Simulation() {
   const [ano, setAno] = useState('');
   const [regiao, setRegiao] = useState('');
 
+  const [cidadesList, setCidadesList] = useState<{ label: string; value: string }[]>([]);
+  const [selectedCity, setSelectedCity] = useState<{ label: string; value: string } | null>(null);
+  const [carregandoCidades, setCarregandoCidades] = useState(false);
+
   const [tentouSimular, setTentouSimular] = useState(false);
 
   const anoInvalido: boolean = !ano || Number(ano) < anoAtual;
+  const semLocalizacao = !regiao && !selectedCity;
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCidades = async () => {
+      setCarregandoCidades(true);
+      try {
+        const res = await api.getMunicipiosTotais(2021); // Usando ano base padrão para listar municípios
+        if (!isMounted) return;
+        const formatadas = res.dados.map(item => ({
+          label: item.municipio,
+          value: String(item.codigo_ibge)
+        }));
+        setCidadesList(formatadas);
+      } catch (error) {
+        console.error("Erro ao buscar municípios para a simulação:", error);
+      } finally {
+        if (isMounted) setCarregandoCidades(false);
+      }
+    };
+    fetchCidades();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const limpar = () => {
     setSubstrato('');
     setQuantidade('');
     setAno('');
     setRegiao('');
+    setSelectedCity(null);
     setTentouSimular(false);
   };
 
   const simular = () => {
     setTentouSimular(true);
-    if (!substrato || !quantidade || anoInvalido || !regiao) return;
+    if (!substrato || !quantidade || anoInvalido || semLocalizacao) return;
     router.push({
       pathname: '/simulationoutput',
-      params: { substrato, quantidade, ano, regiao }
+      params: { 
+        substrato, 
+        quantidade, 
+        ano, 
+        regiao,
+        codigoIbge: selectedCity ? selectedCity.value : '',
+        municipioNome: selectedCity ? selectedCity.label : ''
+      }
     });
   };
+
 
   return (
     <View className="flex-1 bg-white">
@@ -58,21 +97,25 @@ export default function Simulation() {
 
         {/* SUBSTRATO */}
         <View>
-          <Text>Substrato</Text>
+          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
+            Substrato <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>(origem da biomassa) ⓘ</Text>
+          </Text>
           <Dropdown
             data={dataWaste}
             style={{
-              backgroundColor: tentouSimular && !substrato ? '#FFF0F0' : '#EBEBEB',
-              borderWidth: tentouSimular && !substrato ? 1 : 0,
-              borderColor: '#B00020',
+              backgroundColor: tentouSimular && !substrato ? '#FFF0F0' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: tentouSimular && !substrato ? '#B00020' : '#E2E8F0',
               width: '100%',
-              height: 40,
-              borderRadius: 5,
-              paddingHorizontal: 8,
+              height: 42,
+              borderRadius: 8,
+              paddingHorizontal: 12,
             }}
+            placeholderStyle={{ fontSize: 14, color: '#9CA3AF' }}
+            selectedTextStyle={{ fontSize: 14, color: '#1F2937' }}
             labelField="label"
             valueField="value"
-            placeholder="Selecione"
+            placeholder="Selecione o tipo de dejeto"
             value={dataWaste.find(item => item.label === substrato)?.value ?? null}
             onChange={(item: { label: string; value: string }) => setSubstrato(item.label)}
           />
@@ -83,16 +126,18 @@ export default function Simulation() {
 
         {/* QUANTIDADE */}
         <View>
+          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
+            Incremento do Rebanho <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>(%) ⓘ</Text>
+          </Text>
           <TextInput
-            label="Incremento [%]"
-            placeholder="Digite aqui"
+            placeholder="Ex: 15 (para +15% de rebanho)"
             value={quantidade}
             onChangeText={setQuantidade}
             keyboardType="numeric"
-            mode="flat"
-            underlineColor="transparent"
-            activeUnderlineColor="#2D6EFF"
-            style={{ backgroundColor: '#EBEBEB' }}
+            mode="outlined"
+            outlineColor="#E2E8F0"
+            activeOutlineColor="#2D6EFF"
+            style={{ backgroundColor: '#F8FAFC', height: 42, fontSize: 14 }}
             error={tentouSimular && !quantidade}
           />
           <HelperText type="error" visible={tentouSimular && !quantidade}>
@@ -102,19 +147,21 @@ export default function Simulation() {
 
         {/* ANO */}
         <View>
+          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
+            Ano Alvo da Projeção <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>ⓘ</Text>
+          </Text>
           <TextInput
-            label="Ano"
-            placeholder="Digite aqui"
+            placeholder="Digite o ano futuro da simulação"
             value={ano}
             onChangeText={setAno}
             onBlur={() => {
               if (Number(ano) < anoAtual) setAno(anoAtualStr);
             }}
             keyboardType="numeric"
-            mode="flat"
-            underlineColor="transparent"
-            activeUnderlineColor="#2D6EFF"
-            style={{ backgroundColor: '#EBEBEB' }}
+            mode="outlined"
+            outlineColor="#E2E8F0"
+            activeOutlineColor="#2D6EFF"
+            style={{ backgroundColor: '#F8FAFC', height: 42, fontSize: 14 }}
             error={tentouSimular && anoInvalido}
           />
           <HelperText type="error" visible={tentouSimular && anoInvalido}>
@@ -122,28 +169,73 @@ export default function Simulation() {
           </HelperText>
         </View>
 
-        {/* REGIÃO */}
+        {/* MESORREGIÃO */}
         <View>
-          <Text>Região</Text>
+          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>Mesorregião</Text>
           <Dropdown
             data={dataRegion}
             style={{
-              backgroundColor: tentouSimular && !regiao ? '#FFF0F0' : '#EBEBEB',
-              borderWidth: tentouSimular && !regiao ? 1 : 0,
-              borderColor: '#B00020',
+              backgroundColor: tentouSimular && semLocalizacao ? '#FFF0F0' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: tentouSimular && semLocalizacao ? '#B00020' : '#E2E8F0',
               width: '100%',
-              height: 40,
-              borderRadius: 5,
-              paddingHorizontal: 8,
+              height: 42,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              opacity: selectedCity ? 0.5 : 1,
             }}
+            placeholderStyle={{ fontSize: 14, color: '#9CA3AF' }}
+            selectedTextStyle={{ fontSize: 14, color: '#1F2937' }}
             labelField="label"
             valueField="value"
-            placeholder="Selecione"
+            placeholder={selectedCity ? "Desativado (Município selecionado)" : "Selecione a Mesorregião"}
             value={dataRegion.find(item => item.label === regiao)?.value ?? null}
-            onChange={(item: { label: string; value: string }) => setRegiao(item.label)}
+            onChange={(item: { label: string; value: string }) => {
+              setRegiao(item.label);
+              setSelectedCity(null);
+            }}
+            disable={!!selectedCity}
           />
-          <HelperText type="error" visible={tentouSimular && !regiao}>
-            Selecione uma região
+        </View>
+
+        {/* SEPARADOR COM LINHAS LATERAIS */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: '#E2E8F0' }} />
+          <Text style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '700', paddingHorizontal: 12 }}>OU</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: '#E2E8F0' }} />
+        </View>
+
+        {/* MUNICÍPIO */}
+        <View>
+          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>Município</Text>
+          <Dropdown
+            data={cidadesList}
+            search
+            searchPlaceholder="Pesquisar município..."
+            style={{
+              backgroundColor: tentouSimular && semLocalizacao ? '#FFF0F0' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: tentouSimular && semLocalizacao ? '#B00020' : '#E2E8F0',
+              width: '100%',
+              height: 42,
+              borderRadius: 8,
+              paddingHorizontal: 12,
+              opacity: regiao ? 0.5 : 1,
+            }}
+            placeholderStyle={{ fontSize: 14, color: '#9CA3AF' }}
+            selectedTextStyle={{ fontSize: 14, color: '#1F2937' }}
+            labelField="label"
+            valueField="value"
+            placeholder={regiao ? "Desativado (Mesorregião selecionada)" : (carregandoCidades ? "Carregando..." : "Pesquisar e selecionar município")}
+            value={selectedCity?.value ?? null}
+            onChange={(item: { label: string; value: string }) => {
+              setSelectedCity(item);
+              setRegiao('');
+            }}
+            disable={!!regiao || carregandoCidades}
+          />
+          <HelperText type="error" visible={tentouSimular && semLocalizacao}>
+            Selecione uma Mesorregião ou um Município
           </HelperText>
         </View>
 

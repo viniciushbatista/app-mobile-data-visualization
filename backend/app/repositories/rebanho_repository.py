@@ -70,3 +70,35 @@ class RebanhoRepository:
             .all()
         )
         return [r[0] for r in rows]
+
+    def listar_serie_por_mesorregiao(
+        self,
+        mesorregiao: str,
+        substrato: str | None = None,
+    ) -> list[RebanhoMunicipio]:
+        """Retorna todos os registros de rebanho de uma mesorregião em todos os anos."""
+        query = self.db.query(RebanhoMunicipio).filter(
+            RebanhoMunicipio.mesorregiao == mesorregiao,
+            RebanhoMunicipio.dado_disponivel.is_(True),
+            RebanhoMunicipio.quantidade.isnot(None),
+        )
+        if substrato is not None:
+            query = query.filter(RebanhoMunicipio.substrato == substrato)
+        return query.order_by(RebanhoMunicipio.ano, RebanhoMunicipio.substrato).all()
+
+    def listar_serie_por_municipio(
+        self,
+        codigo_ibge: int,
+        substrato: str | None = None,
+    ) -> list[RebanhoMunicipio]:
+        """Retorna todos os registros de rebanho de um município em todos os anos."""
+        query = self.db.query(RebanhoMunicipio).filter(
+            RebanhoMunicipio.codigo_ibge == codigo_ibge,
+            RebanhoMunicipio.dado_disponivel.is_(True),
+            RebanhoMunicipio.quantidade.isnot(None),
+        )
+        if substrato is not None:
+            query = query.filter(RebanhoMunicipio.substrato == substrato)
+        return query.order_by(RebanhoMunicipio.ano, RebanhoMunicipio.substrato).all()
+
+

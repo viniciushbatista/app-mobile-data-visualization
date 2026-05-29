@@ -37,6 +37,23 @@ class ResultadoEnergiaMesorregiaoTotal:
     potencial_tj: float
 
 
+@dataclass(frozen=True)
+class ResultadoEnergiaMesorregiaoSerie:
+    mesorregiao: str
+    substrato: str | None
+    dados: list[tuple[int, float]]  # (ano, potencial_tj)
+
+
+@dataclass(frozen=True)
+class ResultadoEnergiaMunicipioSerie:
+    codigo_ibge: int
+    municipio: str
+    substrato: str | None
+    dados: list[tuple[int, float]]  # (ano, potencial_tj)
+
+
+
+
 class EnergiaService:
     def __init__(self, db: Session) -> None:
         self.rebanho_repo = RebanhoRepository(db)
@@ -176,3 +193,84 @@ class EnergiaService:
                 )
             )
         return resultados
+
+    def serie_potencial_por_mesorregiao(
+        self,
+        mesorregiao: str,
+        substrato: str | None = None,
+    ) -> ResultadoEnergiaMesorregiaoSerie:
+        """
+        Retorna a série histórica completa de potencial energético de uma mesorregião.
+        Faz UMA consulta ao banco (todos os anos) em vez de N consultas (uma por ano).
+        """
+        if not self.rebanho_repo.existe_mesorregiao(mesorregiao):
+            raise ValueError(f"Mesorregiao nao encontrada: {mesorregiao}")
+
+        registros = self.rebanho_repo.listar_serie_por_mesorregiao(mesorregiao, substrato)
+        if not registros:
+            raise ValueError(
+                f"Sem dados de rebanho para mesorregiao '{mesorregiao}'"
+                + (f" com substrato '{substrato}'" if substrato else "")
+            )
+
+        # Agrupar por ano e somar potencial de todos os substratos/municípios
+        potencial_por_ano: dict[int, float] = {}
+        for registro in registros:
+            parametros = self._obter_parametros(registro.substrato)
+            resultado = self.calcular_de_registro(registro, parametros)
+            potencial_por_ano[resultado.ano] = (
+                potencial_por_ano.get(resultado.ano, 0.0) + resultado.potencial_tj
+            )
+
+        dados = sorted(
+            [(ano, round(tj, 4)) for ano, tj in potencial_por_ano.items()],
+            key=lambda x: x[0],
+        )
+        return ResultadoEnergiaMesorregiaoSerie(
+            mesorregiao=mesorregiao,
+            substrato=substrato,
+            dados=dados,
+        )
+
+    def serie_potencial_por_municipio(
+        self,
+        codigo_ibge: int,
+        substrato: str | None = None,
+    ) -> ResultadoEnergiaMunicipioSerie:
+        """
+        Retorna a série histórica completa de potencial energético de um município.
+        Faz UMA consulta ao banco (todos os anos) em vez de N consultas (uma por ano).
+        """
+        if not self.rebanho_repo.existe_municipio(codigo_ibge):
+            raise ValueError(f"Municipio nao encontrado: {codigo_ibge}")
+
+        registros = self.rebanho_repo.listar_serie_por_municipio(codigo_ibge, substrato)
+        if not registros:
+            raise ValueError(
+                f"Sem dados de rebanho para municipio '{codigo_ibge}'"
+                + (f" com substrato '{substrato}'" if substrato else "")
+            )
+
+        # Obter o nome do município do primeiro registro
+        municipio_nome = registros[0].municipio
+
+        # Agrupar por ano e somar potencial de todos os substratos
+        potencial_por_ano: dict[int, float] = {}
+        for registro in registros:
+            parametros = self._obter_parametros(registro.substrato)
+            resultado = self.calcular_de_registro(registro, parametros)
+            potencial_por_ano[resultado.ano] = (
+                potencial_por_ano.get(resultado.ano, 0.0) + resultado.potencial_tj
+            )
+
+        dados = sorted(
+            [(ano, round(tj, 4)) for ano, tj in potencial_por_ano.items()],
+            key=lambda x: x[0],
+        )
+        return ResultadoEnergiaMunicipioSerie(
+            codigo_ibge=codigo_ibge,
+            municipio=municipio_nome,
+            substrato=substrato,
+            dados=dados,
+        )
+

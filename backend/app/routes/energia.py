@@ -5,13 +5,18 @@ from app.database import get_db
 from app.schemas.energia import (
     EnergiaMesorregiaoTotalItem,
     EnergiaMesorregiaoResponse,
+    EnergiaMesorregiaoSerieItem,
+    EnergiaMesorregiaoSerieResponse,
     EnergiaMunicipioItem,
     EnergiaMunicipioResponse,
+    EnergiaMunicipioSerieResponse,
 )
 from app.services.energia_service import (
     EnergiaService,
     ResultadoEnergia,
     ResultadoEnergiaMesorregiaoTotal,
+    ResultadoEnergiaMesorregiaoSerie,
+    ResultadoEnergiaMunicipioSerie,
 )
 
 router = APIRouter()
@@ -97,3 +102,53 @@ def energia_mesorregiao(
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/mesorregiao/{nome}/serie", response_model=EnergiaMesorregiaoSerieResponse)
+def energia_serie_mesorregiao(
+    nome: str,
+    substrato: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Retorna a série histórica completa de potencial energético de uma mesorregião.
+    Uma única chamada substitui N chamadas (uma por ano).
+    """
+    try:
+        service = EnergiaService(db)
+        resultado = service.serie_potencial_por_mesorregiao(nome, substrato)
+        return EnergiaMesorregiaoSerieResponse(
+            mesorregiao=resultado.mesorregiao,
+            substrato=resultado.substrato,
+            dados=[
+                EnergiaMesorregiaoSerieItem(ano=ano, potencial_tj=tj)
+                for ano, tj in resultado.dados
+            ],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/municipio/{codigo_ibge}/serie", response_model=EnergiaMunicipioSerieResponse)
+def energia_serie_municipio(
+    codigo_ibge: int,
+    substrato: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Retorna a série histórica completa de potencial energético de um município.
+    Uma única chamada substitui N chamadas.
+    """
+    try:
+        service = EnergiaService(db)
+        resultado = service.serie_potencial_por_municipio(codigo_ibge, substrato)
+        return EnergiaMunicipioSerieResponse(
+            codigo_ibge=resultado.codigo_ibge,
+            municipio=resultado.municipio,
+            substrato=resultado.substrato,
+            dados=[
+                EnergiaMesorregiaoSerieItem(ano=ano, potencial_tj=tj)
+                for ano, tj in resultado.dados
+            ],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+

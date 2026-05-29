@@ -35,3 +35,23 @@ class EnergiaMesorregiaoTotalItem(BaseModel):
     potencial_tj: float = Field(
         ..., description="Soma do potencial da mesorregiao no ano (TJ)"
     )
+
+
+class EnergiaMesorregiaoSerieItem(BaseModel):
+    ano: int
+    potencial_tj: float = Field(..., description="Potencial energético total no ano (TJ)")
+
+
+class EnergiaMesorregiaoSerieResponse(BaseModel):
+    mesorregiao: str
+    substrato: str | None = Field(default=None, description="Substrato filtrado (None = todos)")
+    dados: list[EnergiaMesorregiaoSerieItem]
+
+
+class EnergiaMunicipioSerieResponse(BaseModel):
+    codigo_ibge: int
+    municipio: str
+    substrato: str | None = Field(default=None, description="Substrato filtrado (None = todos)")
+    dados: list[EnergiaMesorregiaoSerieItem]
+
+

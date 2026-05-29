@@ -1,8 +1,9 @@
 import { View, ScrollView, TouchableOpacity, KeyboardAvoidingView } from "react-native";
-import { Card, Button, Text, Searchbar, Surface } from "react-native-paper";
+import { Card, Button, Text, Searchbar, Surface, ActivityIndicator } from "react-native-paper";
 import MapaParaiba, { MapaParaibaRef } from "../../shared/components/map/PbMap";
-import { useRef, useState, useEffect } from 'react'
-import { Dropdown } from 'react-native-element-dropdown'
+import { useRef, useState, useEffect } from 'react';
+import { Dropdown } from 'react-native-element-dropdown';
+import { api } from "../../services/api";
 
 const anosDisponiveis = [
   { label: '2013', value: '2013' },
@@ -19,66 +20,108 @@ const anosDisponiveis = [
   { label: '2024', value: '2024' },
 ];
 
-const cidadesPB = [
-  { nome: "João Pessoa", mesorregiao: "Mata Paraibana", potencial: 1200 },
-  { nome: "Campina Grande", mesorregiao: "Agreste Paraibano", potencial: 980 },
-  { nome: "Patos", mesorregiao: "Sertão Paraibano", potencial: 760 },
-  { nome: "Sousa", mesorregiao: "Sertão Paraibano", potencial: 540 },
-  { nome: "Cajazeiras", mesorregiao: "Sertão Paraibano", potencial: 430 },
-
-  { nome: "Santa Rita", mesorregiao: "Mata Paraibana", potencial: 670 },
-  { nome: "Bayeux", mesorregiao: "Mata Paraibana", potencial: 610 },
-  { nome: "Cabedelo", mesorregiao: "Mata Paraibana", potencial: 580 },
-  { nome: "Guarabira", mesorregiao: "Agreste Paraibano", potencial: 520 },
-  { nome: "Mamanguape", mesorregiao: "Mata Paraibana", potencial: 490 },
-
-  { nome: "Itabaiana", mesorregiao: "Agreste Paraibano", potencial: 470 },
-  { nome: "Sapé", mesorregiao: "Mata Paraibana", potencial: 450 },
-  { nome: "Monteiro", mesorregiao: "Borborema", potencial: 440 },
-  { nome: "Sumé", mesorregiao: "Borborema", potencial: 420 },
-  { nome: "Esperança", mesorregiao: "Agreste Paraibano", potencial: 400 },
-
-  { nome: "Pombal", mesorregiao: "Sertão Paraibano", potencial: 390 },
-  { nome: "Catolé do Rocha", mesorregiao: "Sertão Paraibano", potencial: 370 },
-  { nome: "Princesa Isabel", mesorregiao: "Sertão Paraibano", potencial: 350 },
-  { nome: "Alagoa Grande", mesorregiao: "Agreste Paraibano", potencial: 330 },
-  { nome: "Areia", mesorregiao: "Agreste Paraibano", potencial: 310 },
-
-  { nome: "Picuí", mesorregiao: "Borborema", potencial: 300 },
-  { nome: "Queimadas", mesorregiao: "Agreste Paraibano", potencial: 290 },
-  { nome: "Solânea", mesorregiao: "Agreste Paraibano", potencial: 270 },
-  { nome: "Remígio", mesorregiao: "Agreste Paraibano", potencial: 260 },
-  { nome: "Araruna", mesorregiao: "Agreste Paraibano", potencial: 250 },
-];
-
 export default function MapaScreen() {
   const scrollRef = useRef<ScrollView>(null);
-
   const mapaRef = useRef<MapaParaibaRef>(null);
 
   const [anoSelecionado, setAnoSelecionado] = useState('2021');
-
   const [regiaoSelecionada, setRegiaoSelecionada] = useState<{
     nome: string;
     valor: number;
   } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredCities, setFilteredCities] = useState<typeof cidadesPB>(cidadesPB.slice(0, 20));
-  const [selectedCity, setSelectedCity] = useState<typeof cidadesPB[0] | null>(null);
+  const [cidades, setCidades] = useState<any[]>([]);
+  const [filteredCities, setFilteredCities] = useState<any[]>([]);
+  const [selectedCity, setSelectedCity] = useState<any | null>(null);
+  const [carregandoCidades, setCarregandoCidades] = useState(false);
 
+  // 1. Efeito para carregar potenciais das mesorregiões do mapa
+  useEffect(() => {
+    let isMounted = true;
+    
+    const carregarDadosMapa = async () => {
+      try {
+        const totaisMeso = await api.getEnergiaMesorregioesTotais(Number(anoSelecionado));
+        
+        if (!isMounted) return;
+
+        // Mapeia para o formato esperado pelo ECharts
+        const dadosFormatados = totaisMeso.map(item => ({
+          name: item.mesorregiao,
+          value: item.potencial_tj
+        }));
+
+        // Injeta os dados reais no mapa
+        mapaRef.current?.atualizarDados(dadosFormatados);
+        
+        // Se já tiver uma região selecionada, atualiza seu potencial
+        if (regiaoSelecionada) {
+          const mesoAtualizada = totaisMeso.find(r => r.mesorregiao === regiaoSelecionada.nome);
+          if (mesoAtualizada) {
+            setRegiaoSelecionada({
+              nome: mesoAtualizada.mesorregiao,
+              valor: mesoAtualizada.potencial_tj
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[MapaScreen] Erro ao carregar dados de energia do mapa:', error);
+      }
+    };
+
+    carregarDadosMapa();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [anoSelecionado]);
+
+  // 2. Efeito para carregar a lista de cidades com dados de rebanho reais
+  useEffect(() => {
+    let isMounted = true;
+
+    const carregarMunicipios = async () => {
+      setCarregandoCidades(true);
+      try {
+        const res = await api.getMunicipiosTotais(Number(anoSelecionado));
+        if (!isMounted) return;
+
+        const listaCidades = res.dados.map(item => ({
+          codigo_ibge: item.codigo_ibge,
+          nome: item.municipio,
+          mesorregiao: item.mesorregiao,
+          potencial: null as number | null, // Carregado sob demanda ao expandir
+        }));
+
+        setCidades(listaCidades);
+      } catch (error) {
+        console.error('[MapaScreen] Erro ao carregar municípios:', error);
+      } finally {
+        if (isMounted) setCarregandoCidades(false);
+      }
+    };
+
+    carregarMunicipios();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [anoSelecionado]);
+
+  // 3. Efeito para filtrar cidades de acordo com a busca
   useEffect(() => {
     if (searchQuery.length === 0) {
-      setFilteredCities(cidadesPB.slice(0, 20));
+      setFilteredCities(cidades.slice(0, 20));
       return;
     }
 
-    const filtered = cidadesPB.filter(cidade =>
+    const filtered = cidades.filter(cidade =>
       cidade.nome.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     setFilteredCities(filtered.slice(0, 10));
-  }, [searchQuery]);
+  }, [searchQuery, cidades]);
 
   return (
     <View className="flex-1 bg-white">
@@ -86,27 +129,43 @@ export default function MapaScreen() {
 
         {/* CARD REGIÃO */}
         <View className="p-4 pt-2">
-          <Card mode="elevated" theme={{ colors: { elevation: { level1: '#FFFFFF' } } }}>
-            <Card.Content>
+          <Card 
+            mode="elevated" 
+            style={{ 
+              backgroundColor: '#FFFFFF', 
+              borderRadius: 12,
+              borderLeftWidth: 5,
+              borderLeftColor: regiaoSelecionada ? '#2D6EFF' : '#9CA3AF',
+              elevation: 2,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8
+            }}
+          >
+            <Card.Content style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
               <Text
-                variant="titleLarge"
-                style={{ fontWeight: 'bold', color: regiaoSelecionada ? '#2D6EFF' : '#000000' }}
+                style={{ 
+                  fontWeight: 'bold', 
+                  fontSize: 26, 
+                  color: regiaoSelecionada ? '#2D6EFF' : '#1F2937' 
+                }}
               >
                 {regiaoSelecionada?.valor != null
                   ? `${regiaoSelecionada.valor.toLocaleString('pt-BR')} TJ`
-                  : 'Sem dados para este ano'}
+                  : 'Selecione uma região'}
               </Text>
-              <Text style={{ color: '#6B7280' }}>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4, fontWeight: '500' }}>
                 {regiaoSelecionada
-                  ? `Potencial energético — ${regiaoSelecionada.nome}`
-                  : 'Potencial energético — selecione uma região'}
+                  ? `Potencial energético total — ${regiaoSelecionada.nome}`
+                  : 'Toque em uma mesorregião no mapa para carregar o potencial'}
               </Text>
             </Card.Content>
           </Card>
         </View>
 
         {/* DROPDOWN */}
-        <View className="px-4 items-end">
+        <View className="px-4 items-end mt-1 mb-2">
           <Dropdown
             data={anosDisponiveis}
             labelField="label"
@@ -116,13 +175,16 @@ export default function MapaScreen() {
               setAnoSelecionado(item.value);
               mapaRef.current?.atualizarAno(item.value);
             }}
+            placeholderStyle={{ fontSize: 13, color: '#9CA3AF' }}
+            selectedTextStyle={{ fontSize: 13, fontWeight: 'bold', color: '#1F2937' }}
             style={{
-              width: 150,
+              width: 120,
               borderWidth: 1,
-              borderColor: "#ccc",
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              height: 35,
+              borderColor: "#E2E8F0",
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              height: 32,
+              backgroundColor: '#F8FAFC'
             }}
           />
         </View>
@@ -174,44 +236,96 @@ export default function MapaScreen() {
 
           {/* LISTA EXPANSÍVEL */}
           <View style={{ height: 300 }}>
-            <ScrollView nestedScrollEnabled>
-              {filteredCities.map((item) => {
-                const isSelected = selectedCity?.nome === item.nome;
+            {carregandoCidades && cidades.length === 0 ? (
+              <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ActivityIndicator size="large" color="#2D6EFF" />
+              </View>
+            ) : (
+              <ScrollView nestedScrollEnabled>
+                {filteredCities.map((item) => {
+                  const isSelected = selectedCity?.nome === item.nome;
 
-                return (
-                  <TouchableOpacity
-                    key={item.nome}
-                    onPress={() => {
-                      if (isSelected) {
-                        setSelectedCity(null);
-                      } else {
-                        setSelectedCity(item);
-                      }
-                    }}
-                    style={{
-                      padding: 12,
-                      borderBottomWidth: 0.5,
-                      borderColor: "#ccc",
-                      backgroundColor: isSelected ? "#F3F4F6" : "#FFFFFF"
-                    }}
-                  >
-                    <Text style={{ fontWeight: "bold" }}>
-                      {item.nome} {isSelected ? "▲" : "▼"}
-                    </Text>
+                  return (
+                    <TouchableOpacity
+                      key={item.nome}
+                      onPress={async () => {
+                        if (isSelected) {
+                          setSelectedCity(null);
+                        } else {
+                          setSelectedCity(item);
 
-                    <Text style={{ fontSize: 12, color: "gray" }}>
-                      {item.mesorregiao}
-                    </Text>
+                          // Se ainda não buscou o potencial, busca sob demanda
+                          if (item.potencial === null) {
+                            try {
+                              const res = await api.getEnergiaMunicipio(item.codigo_ibge, Number(anoSelecionado));
+                              const potencialTotal = res.resultados.reduce((acc, curr) => acc + curr.potencial_tj, 0);
+                              const potencialFormatado = parseFloat(potencialTotal.toFixed(2));
 
-                    {isSelected && (
-                      <View style={{ marginTop: 8 }}>
-                        <Text>Potencial: {item.potencial} TJ</Text>
+                              // Atualiza na lista local
+                              setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: potencialFormatado } : c));
+
+                              // Atualiza o estado selecionado para mostrar na hora
+                              setSelectedCity({
+                                ...item,
+                                potencial: potencialFormatado
+                              });
+                            } catch (error) {
+                              console.error('[MapaScreen] Erro ao carregar potencial do município:', error);
+                            }
+                          }
+                        }
+                      }}
+                      style={{
+                        paddingVertical: 14,
+                        paddingHorizontal: 16,
+                        borderLeftWidth: 4,
+                        borderLeftColor: isSelected ? "#2D6EFF" : "transparent",
+                        backgroundColor: isSelected ? "#F8FAFC" : "#FFFFFF",
+                        borderBottomWidth: 1,
+                        borderColor: "#F1F5F9",
+                        marginVertical: 2,
+                        borderRadius: 6,
+                        shadowColor: isSelected ? "#000000" : "transparent",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 2,
+                        elevation: isSelected ? 1 : 0
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontWeight: "700", fontSize: 15, color: isSelected ? "#2D6EFF" : "#1F2937" }}>
+                          {item.nome}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: isSelected ? "#2D6EFF" : "#9CA3AF" }}>
+                          {isSelected ? "▲" : "▼"}
+                        </Text>
                       </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+
+                      <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                        {item.mesorregiao}
+                      </Text>
+
+                      {isSelected && (
+                        <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                          {item.potencial === null ? (
+                            <ActivityIndicator size="small" color="#2D6EFF" style={{ alignSelf: 'flex-start' }} />
+                          ) : (
+                            <View>
+                              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                                Potencial: <Text style={{ color: '#2D6EFF', fontWeight: 'bold' }}>{item.potencial} TJ</Text>
+                              </Text>
+                              <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
+                                Ano de referência: {anoSelecionado}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
           </View>
         </View>
 
