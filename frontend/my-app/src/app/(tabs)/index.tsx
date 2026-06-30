@@ -7,20 +7,10 @@ import { api } from "../../services/api";
 import { ListRowSkeleton } from "../../shared/components/SkeletonLoader";
 import EmptyState from "../../shared/components/EmptyState";
 
-const anosDisponiveis = [
-  { label: '2013', value: '2013' },
-  { label: '2014', value: '2014' },
-  { label: '2015', value: '2015' },
-  { label: '2016', value: '2016' },
-  { label: '2017', value: '2017' },
-  { label: '2018', value: '2018' },
-  { label: '2019', value: '2019' },
-  { label: '2020', value: '2020' },
-  { label: '2021', value: '2021' },
-  { label: '2022', value: '2022' },
-  { label: '2023', value: '2023' },
-  { label: '2024', value: '2024' },
-];
+const anosDisponiveis = Array.from({ length: 2024 - 1973 + 1 }, (_, i) => {
+  const ano = String(1973 + i);
+  return { label: ano, value: ano };
+});
 
 export default function MapaScreen() {
   const scrollRef = useRef<ScrollView>(null);
@@ -93,7 +83,7 @@ export default function MapaScreen() {
           codigo_ibge: item.codigo_ibge,
           nome: item.municipio,
           mesorregiao: item.mesorregiao,
-          potencial: null as number | null, // Carregado sob demanda ao expandir
+          potencial: null as number | null | 'sem_dado', // null=não carregado, 'sem_dado'=sem dados, number=valor
         }));
 
         setCidades(listaCidades);
@@ -268,12 +258,19 @@ export default function MapaScreen() {
                           if (item.potencial === null) {
                             try {
                               const res = await api.getEnergiaMunicipio(item.codigo_ibge, Number(anoSelecionado));
-                              const potencialTotal = res.resultados.reduce((acc, curr) => acc + curr.potencial_tj, 0);
-                              const potencialFormatado = parseFloat(potencialTotal.toFixed(2));
-                              setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: potencialFormatado } : c));
-                              setSelectedCity({ ...item, potencial: potencialFormatado });
+                              if (!res.resultados || res.resultados.length === 0) {
+                                setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: 'sem_dado' } : c));
+                                setSelectedCity({ ...item, potencial: 'sem_dado' });
+                              } else {
+                                const potencialTotal = res.resultados.reduce((acc: number, curr: any) => acc + curr.potencial_tj, 0);
+                                const potencialFormatado = parseFloat(potencialTotal.toFixed(2));
+                                setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: potencialFormatado } : c));
+                                setSelectedCity({ ...item, potencial: potencialFormatado });
+                              }
                             } catch (error) {
                               console.error('[MapaScreen] Erro ao carregar potencial do município:', error);
+                              setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: 'sem_dado' } : c));
+                              setSelectedCity({ ...item, potencial: 'sem_dado' });
                             }
                           }
                         }
@@ -312,6 +309,10 @@ export default function MapaScreen() {
                         <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
                           {item.potencial === null ? (
                             <ListRowSkeleton />
+                          ) : item.potencial === 'sem_dado' ? (
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>
+                              Dado não disponível para {anoSelecionado}
+                            </Text>
                           ) : (
                             <View>
                               <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>

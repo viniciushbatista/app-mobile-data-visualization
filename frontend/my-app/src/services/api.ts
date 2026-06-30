@@ -129,6 +129,41 @@ export interface EnergiaMesorregiaoResponse {
   detalhes: EnergiaMunicipioItem[] | null;
 }
 
+// ---------- Prophet Previsão ----------
+
+export interface PrevisaoItemResponse {
+  ano: number;
+  quantidade_prevista: number;
+  limite_inferior: number;
+  limite_superior: number;
+  potencial_tj: number | null;
+  desvio_padrao: number | null;
+  tolerancia_1sigma: number | null;
+  tolerancia_2sigma: number | null;
+}
+
+export interface HistoricoItemResponse {
+  ano: number;
+  quantidade: number;
+}
+
+export interface MetricasValidacaoResponse {
+  mae: number;
+  mape: number;
+  rmse: number;
+  n_pontos_treino: number;
+  n_pontos_validacao: number;
+}
+
+export interface PrevisaoResponse {
+  tipo: string;
+  identificador: string;
+  substrato: string;
+  historico: HistoricoItemResponse[];
+  previsoes: PrevisaoItemResponse[];
+  metricas: MetricasValidacaoResponse | null;
+}
+
 // Funções auxiliares para requisições fetch
 const fetchFromApi = async <T>(path: string, options?: RequestInit): Promise<T> => {
   try {
@@ -211,5 +246,41 @@ export const api = {
     );
   },
 
+  // ---------- Prophet: Previsão de Rebanho ----------
+
+  // Previsão Prophet para uma mesorregião
+  getPrevisaoMesorregiao: (
+    nome: string,
+    substrato: string,
+    horizonte: number = 2030,
+    incluirEnergia: boolean = true
+  ): Promise<PrevisaoResponse> => {
+    const params = new URLSearchParams({
+      substrato,
+      horizonte: String(horizonte),
+      incluir_energia: String(incluirEnergia),
+    });
+    return fetchFromApi<PrevisaoResponse>(
+      `/previsao/mesorregiao/${encodeURIComponent(nome)}?${params.toString()}`
+    );
+  },
+
+  // Previsão Prophet para um município
+  getPrevisaoMunicipio: (
+    codigoIbge: number,
+    substrato: string,
+    horizonte: number = 2030,
+    incluirEnergia: boolean = true
+  ): Promise<PrevisaoResponse> => {
+    const params = new URLSearchParams({
+      substrato,
+      horizonte: String(horizonte),
+      incluir_energia: String(incluirEnergia),
+    });
+    return fetchFromApi<PrevisaoResponse>(
+      `/previsao/municipio/${codigoIbge}?${params.toString()}`
+    );
+  },
 
 };
+

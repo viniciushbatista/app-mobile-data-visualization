@@ -8,3 +8,5 @@ psycopg2-binary>=2.9
 pydantic-settings>=2.2
 python-dotenv>=1.0
 pytest>=8.0
+prophet>=1.1
+cmdstanpy>=1.2

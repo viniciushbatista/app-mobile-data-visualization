@@ -21,7 +21,7 @@ type Item = {
 };
 
 type YearData = {
-    year: string;
+    year: number;
     value: number;
 };
 
@@ -146,7 +146,7 @@ export default function Dashboard() {
             }
 
             const resultados = serieRes.dados.map(item => ({
-                year: String(item.ano),
+                year: item.ano,
                 value: parseFloat(item.potencial_tj.toFixed(2)),
             }));
             setLineChartData(resultados);
@@ -167,6 +167,13 @@ export default function Dashboard() {
 
     const fonts = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
     const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
+
+    // Calcular o domínio dinâmico do eixo Y para melhorar a escala
+    const valuesY = lineChartData.map(d => d.value);
+    const minY = valuesY.length > 0 ? Math.min(...valuesY) : 0;
+    const maxY = valuesY.length > 0 ? Math.max(...valuesY) : 100;
+    const paddingY = (maxY - minY) * 0.1 || 10;
+    const domainY = [Math.max(0, minY - paddingY), maxY + paddingY] as [number, number];
 
     return (
         <View className="flex-1 bg-white ">
@@ -337,23 +344,19 @@ export default function Dashboard() {
                         ) : (
                             <CartesianChart
                                 data={lineChartData}
-
-                                // xKey: qual campo do objeto será usado no eixo X (horizontal)
                                 xKey="year"
-
-                                // yKeys: quais campos serão usados no eixo Y (vertical)
-                                // Aqui usamos um array porque pode ter múltiplas linhas
-                                // Mas nesse caso, só temos "value"
                                 yKeys={["value"]}
-
-                                // axisOptions: configurações dos eixos
+                                domain={{ y: domainY }}
                                 axisOptions={{
-                                    tickCount: 6,              // Número de marcadores no eixo Y
-                                    font: fonts,                       // Fonte para os labels
-                                    formatYLabel: (value) => `${value}TJ`, // Formata os valores do eixo Y
+                                    tickCount: { x: 5, y: 6 }, // Limita marcadores para evitar acúmulo no X
+                                    font: fonts,               // Fonte para os labels
+                                    formatYLabel: (v) => {
+                                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M TJ`;
+                                        if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K TJ`;
+                                        return `${v.toFixed(0)} TJ`;
+                                    },
+                                    formatXLabel: (v) => String(v),
                                 }}
-
-                                // domainPadding: espaçamento extra ao redor do gráfico
                                 domainPadding={{ right: 20, top: 30, left: 20 }}
                             >
                                 {/* PASSO 9: Renderizar a linha */}

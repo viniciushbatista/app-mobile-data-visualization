@@ -36,15 +36,6 @@ export default function Sobre() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-      {/* Banner do topo */}
-      <View style={styles.banner}>
-        <View style={styles.bannerIcon}>
-          <MaterialIcons name="eco" size={36} color="#4ADE80" />
-        </View>
-        <Text style={styles.bannerTitle}>Bizu</Text>
-        <Text style={styles.bannerSubtitle}>Potencial Energético da Paraíba</Text>
-      </View>
-
       {/* Sobre o Projeto */}
       <InfoCard icon="info" title="Sobre o Projeto" accentColor="#2D6EFF">
         <Text style={styles.bodyText}>

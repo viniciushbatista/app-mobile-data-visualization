@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet, Dimensions } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { View, Text, Animated, StyleSheet, Dimensions, Image } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface AppSplashProps {
   onFinish: () => void;
@@ -10,7 +9,7 @@ interface AppSplashProps {
 
 export default function AppSplash({ onFinish }: AppSplashProps) {
   const opacity = useRef(new Animated.Value(1)).current;
-  const logoScale = useRef(new Animated.Value(0.6)).current;
+  const logoScale = useRef(new Animated.Value(0.7)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const progressWidth = useRef(new Animated.Value(0)).current;
 
@@ -37,7 +36,7 @@ export default function AppSplash({ onFinish }: AppSplashProps) {
       useNativeDriver: false,
     }).start();
 
-    // Após 2.2s faz fade-out e chama onFinish
+    // Após 2.4s faz fade-out e chama onFinish
     const timer = setTimeout(() => {
       Animated.timing(opacity, {
         toValue: 0,
@@ -46,17 +45,13 @@ export default function AppSplash({ onFinish }: AppSplashProps) {
       }).start(() => {
         onFinish();
       });
-    }, 2200);
+    }, 2400);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <Animated.View style={[styles.container, { opacity }]}>
-      {/* Background gradient via layers */}
-      <View style={styles.bgTop} />
-      <View style={styles.bgBottom} />
-
       {/* Conteúdo central */}
       <Animated.View
         style={[
@@ -64,20 +59,26 @@ export default function AppSplash({ onFinish }: AppSplashProps) {
           { opacity: logoOpacity, transform: [{ scale: logoScale }] },
         ]}
       >
-        {/* Ícone */}
-        <View style={styles.iconContainer}>
-          <MaterialIcons name="eco" size={56} color="#4ADE80" />
-        </View>
+        {/* Logo NEGO */}
+        <Image
+          source={require('../../../assets/image/logo-nego.png')}
+          style={styles.negoLogo}
+          resizeMode="contain"
+        />
 
         {/* Título */}
         <Text style={styles.title}>Bizu</Text>
-        <Text style={styles.subtitle}>Potencial Energético da Paraíba</Text>
+        <Text style={styles.subtitle}>Potencial Energético de Biogás da Paraíba</Text>
 
-        {/* Linha separadora */}
+        {/* Linha separadora vermelha */}
         <View style={styles.divider} />
 
-        {/* Instituição */}
-        <Text style={styles.institution}>UFPB · LASTER · PIBIC</Text>
+        {/* Logo LASTER */}
+        <Image
+          source={require('../../../assets/image/logo-laster.png')}
+          style={styles.lasterLogo}
+          resizeMode="contain"
+        />
       </Animated.View>
 
       {/* Barra de progresso */}
@@ -97,63 +98,42 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D1B4E',
-  },
-  bgTop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0D1B4E',
-  },
-  bgBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: height * 0.4,
-    backgroundColor: '#122B7A',
-    borderTopLeftRadius: 60,
-    opacity: 0.5,
+    backgroundColor: '#FFFFFF',
   },
   centerContent: {
     alignItems: 'center',
     marginBottom: 80,
+    paddingHorizontal: 24,
   },
-  iconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
-    backgroundColor: 'rgba(74, 222, 128, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.25)',
+  negoLogo: {
+    width: width * 0.82,
+    height: 210,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#1A1A1A',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.65)',
+    color: '#666666',
     fontWeight: '400',
-    letterSpacing: 0.3,
-    marginBottom: 20,
+    letterSpacing: 0.2,
+    marginBottom: 18,
   },
   divider: {
-    width: 40,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginBottom: 14,
+    width: 44,
+    height: 3,
+    backgroundColor: '#D32F2F',
+    borderRadius: 2,
+    marginBottom: 18,
   },
-  institution: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.45)',
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+  lasterLogo: {
+    width: width * 0.85,
+    height: 130,
   },
   progressContainer: {
     position: 'absolute',
@@ -164,18 +144,18 @@ const styles = StyleSheet.create({
   progressTrack: {
     width: width * 0.6,
     height: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#E0E0E0',
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#4ADE80',
+    backgroundColor: '#D32F2F',
     borderRadius: 4,
   },
   loadingText: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.35)',
-    letterSpacing: 0.5,
+    fontSize: 12,
+    color: '#9E9E9E',
+    letterSpacing: 0.3,
   },
 });

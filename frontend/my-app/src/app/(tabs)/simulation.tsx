@@ -1,7 +1,7 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Keyboard } from "react-native";
 import { Dropdown } from 'react-native-element-dropdown';
 import { Button, TextInput, HelperText } from "react-native-paper";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from "../../services/api";
@@ -24,6 +24,7 @@ const dataRegion = [
 
 const anoAtual = new Date().getFullYear();
 const anoAtualStr = String(anoAtual);
+const ANO_MAX_PROPHET = 2035;
 
 export default function Simulation() {
   const router = useRouter();
@@ -51,7 +52,33 @@ export default function Simulation() {
 
   const [tentouSimular, setTentouSimular] = useState(false);
 
-  const anoInvalido: boolean = !ano || Number(ano) < anoAtual;
+  // Estados e refs para toggle dos campos numéricos (fix teclado iOS)
+  const [quantidadeAtiva, setQuantidadeAtiva] = useState(false);
+  const [anoAtivo, setAnoAtivo] = useState(false);
+  const quantidadeRef = useRef<any>(null);
+  const anoRef = useRef<any>(null);
+
+  const toggleQuantidade = () => {
+    if (quantidadeAtiva) {
+      Keyboard.dismiss();
+      setQuantidadeAtiva(false);
+    } else {
+      setQuantidadeAtiva(true);
+      setTimeout(() => quantidadeRef.current?.focus(), 80);
+    }
+  };
+
+  const toggleAno = () => {
+    if (anoAtivo) {
+      Keyboard.dismiss();
+      setAnoAtivo(false);
+    } else {
+      setAnoAtivo(true);
+      setTimeout(() => anoRef.current?.focus(), 80);
+    }
+  };
+
+  const anoInvalido: boolean = !ano || Number(ano) < anoAtual || Number(ano) > ANO_MAX_PROPHET;
   const semLocalizacao = !regiao && !selectedCity;
 
   useEffect(() => {
@@ -85,6 +112,9 @@ export default function Simulation() {
     setRegiao('');
     setSelectedCity(null);
     setTentouSimular(false);
+    setQuantidadeAtiva(false);
+    setAnoAtivo(false);
+    Keyboard.dismiss();
   };
 
   const simular = () => {
@@ -164,17 +194,46 @@ export default function Simulation() {
           <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
             Incremento do Rebanho <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>(%) ⓘ</Text>
           </Text>
-          <TextInput
-            placeholder="Ex: 15 (para +15% de rebanho)"
-            value={quantidade}
-            onChangeText={setQuantidade}
-            keyboardType="numeric"
-            mode="outlined"
-            outlineColor="#E2E8F0"
-            activeOutlineColor="#2D6EFF"
-            style={{ backgroundColor: '#F8FAFC', height: 42, fontSize: 14 }}
-            error={tentouSimular && !quantidade}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput
+                ref={quantidadeRef}
+                placeholder="Ex: 15 (para +15% de rebanho)"
+                value={quantidade}
+                onChangeText={setQuantidade}
+                keyboardType="numeric"
+                mode="outlined"
+                outlineColor={quantidadeAtiva ? '#2D6EFF' : '#E2E8F0'}
+                activeOutlineColor="#2D6EFF"
+                style={{
+                  backgroundColor: quantidadeAtiva ? '#F0F5FF' : '#F1F3F6',
+                  height: 42,
+                  fontSize: 14,
+                  opacity: quantidadeAtiva ? 1 : 0.6,
+                }}
+                editable={quantidadeAtiva}
+                error={tentouSimular && !quantidade}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={toggleQuantidade}
+              activeOpacity={0.75}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 8,
+                backgroundColor: quantidadeAtiva ? '#2D6EFF' : '#E2E8F0',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialIcons
+                name={quantidadeAtiva ? 'check' : 'edit'}
+                size={20}
+                color={quantidadeAtiva ? '#FFFFFF' : '#6B7280'}
+              />
+            </TouchableOpacity>
+          </View>
           <HelperText type="error" visible={tentouSimular && !quantidade}>
             Informe a quantidade
           </HelperText>
@@ -185,22 +244,52 @@ export default function Simulation() {
           <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
             Ano Alvo da Projeção <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>ⓘ</Text>
           </Text>
-          <TextInput
-            placeholder="Digite o ano futuro da simulação"
-            value={ano}
-            onChangeText={setAno}
-            onBlur={() => {
-              if (Number(ano) < anoAtual) setAno(anoAtualStr);
-            }}
-            keyboardType="numeric"
-            mode="outlined"
-            outlineColor="#E2E8F0"
-            activeOutlineColor="#2D6EFF"
-            style={{ backgroundColor: '#F8FAFC', height: 42, fontSize: 14 }}
-            error={tentouSimular && anoInvalido}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <TextInput
+                ref={anoRef}
+                placeholder="Digite o ano futuro da simulação"
+                value={ano}
+                onChangeText={setAno}
+                onBlur={() => {
+                  if (Number(ano) < anoAtual) setAno(anoAtualStr);
+                  if (Number(ano) > ANO_MAX_PROPHET) setAno(String(ANO_MAX_PROPHET));
+                }}
+                keyboardType="numeric"
+                mode="outlined"
+                outlineColor={anoAtivo ? '#2D6EFF' : '#E2E8F0'}
+                activeOutlineColor="#2D6EFF"
+                style={{
+                  backgroundColor: anoAtivo ? '#F0F5FF' : '#F1F3F6',
+                  height: 42,
+                  fontSize: 14,
+                  opacity: anoAtivo ? 1 : 0.6,
+                }}
+                editable={anoAtivo}
+                error={tentouSimular && anoInvalido}
+              />
+            </View>
+            <TouchableOpacity
+              onPress={toggleAno}
+              activeOpacity={0.75}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 8,
+                backgroundColor: anoAtivo ? '#2D6EFF' : '#E2E8F0',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialIcons
+                name={anoAtivo ? 'check' : 'edit'}
+                size={20}
+                color={anoAtivo ? '#FFFFFF' : '#6B7280'}
+              />
+            </TouchableOpacity>
+          </View>
           <HelperText type="error" visible={tentouSimular && anoInvalido}>
-            Informe um ano a partir de {anoAtualStr}
+            Informe um ano entre {anoAtualStr} e {ANO_MAX_PROPHET}
           </HelperText>
         </View>
 

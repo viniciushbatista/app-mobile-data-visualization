@@ -16,6 +16,19 @@ from app.services.energia_calculos import (
     calcular_potencial_tj,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Cache global para resultados de cálculo de energia
+_energia_cache: dict[str, any] = {}
+
+
+def limpar_cache_energia() -> None:
+    """Limpa o cache de potencial energético."""
+    _energia_cache.clear()
+    logger.info("Cache de energia limpo.")
+
 
 @dataclass(frozen=True)
 class ResultadoEnergia:
@@ -58,6 +71,7 @@ class EnergiaService:
     def __init__(self, db: Session) -> None:
         self.rebanho_repo = RebanhoRepository(db)
         self.parametros_repo = ParametrosSubstratoRepository(db)
+        self._parametros_cache: dict[str, ParametrosSubstrato] = {}
 
     def calcular_de_registro(
         self,
@@ -120,7 +134,10 @@ class EnergiaService:
         )
 
     def _obter_parametros(self, substrato: str) -> ParametrosSubstrato:
-        parametros = self.parametros_repo.obter_por_substrato(substrato)
+        if not self._parametros_cache:
+            self._parametros_cache = self.parametros_repo.mapa_por_substrato()
+        
+        parametros = self._parametros_cache.get(substrato)
         if parametros is None:
             raise ValueError(
                 f"Parametros energeticos nao cadastrados para substrato: {substrato}"
@@ -133,6 +150,10 @@ class EnergiaService:
         ano: int,
         substrato: str | None = None,
     ) -> list[ResultadoEnergia]:
+        cache_key = f"potencial_mun:{codigo_ibge}:{ano}:{substrato or 'todos'}"
+        if cache_key in _energia_cache:
+            return _energia_cache[cache_key]
+
         if not self.rebanho_repo.existe_municipio(codigo_ibge):
             raise ValueError(f"Municipio nao encontrado: {codigo_ibge}")
 
@@ -148,6 +169,7 @@ class EnergiaService:
         for registro in registros:
             parametros = self._obter_parametros(registro.substrato)
             resultados.append(self.calcular_de_registro(registro, parametros))
+        _energia_cache[cache_key] = resultados
         return resultados
 
     def potencial_por_mesorregiao(
@@ -156,6 +178,10 @@ class EnergiaService:
         ano: int,
         substrato: str | None = None,
     ) -> tuple[float, list[ResultadoEnergia]]:
+        cache_key = f"potencial_meso:{mesorregiao}:{ano}:{substrato or 'todos'}"
+        if cache_key in _energia_cache:
+            return _energia_cache[cache_key]
+
         if not self.rebanho_repo.existe_mesorregiao(mesorregiao):
             raise ValueError(f"Mesorregiao nao encontrada: {mesorregiao}")
 
@@ -173,11 +199,17 @@ class EnergiaService:
             detalhes.append(self.calcular_de_registro(registro, parametros))
 
         potencial_total_tj = sum(r.potencial_tj for r in detalhes)
-        return potencial_total_tj, detalhes
+        resultado = (potencial_total_tj, detalhes)
+        _energia_cache[cache_key] = resultado
+        return resultado
 
     def potencial_total_por_mesorregiao_no_ano(
         self, ano: int
     ) -> list[ResultadoEnergiaMesorregiaoTotal]:
+        cache_key = f"totais_meso:{ano}"
+        if cache_key in _energia_cache:
+            return _energia_cache[cache_key]
+
         mesorregioes = self.rebanho_repo.listar_mesorregioes_por_ano(ano)
         if not mesorregioes:
             raise ValueError(f"Sem dados de rebanho para o ano {ano}")
@@ -192,6 +224,7 @@ class EnergiaService:
                     potencial_tj=total_tj,
                 )
             )
+        _energia_cache[cache_key] = resultados
         return resultados
 
     def serie_potencial_por_mesorregiao(
@@ -203,6 +236,10 @@ class EnergiaService:
         Retorna a série histórica completa de potencial energético de uma mesorregião.
         Faz UMA consulta ao banco (todos os anos) em vez de N consultas (uma por ano).
         """
+        cache_key = f"serie_meso:{mesorregiao}:{substrato or 'todos'}"
+        if cache_key in _energia_cache:
+            return _energia_cache[cache_key]
+
         if not self.rebanho_repo.existe_mesorregiao(mesorregiao):
             raise ValueError(f"Mesorregiao nao encontrada: {mesorregiao}")
 
@@ -226,11 +263,13 @@ class EnergiaService:
             [(ano, round(tj, 4)) for ano, tj in potencial_por_ano.items()],
             key=lambda x: x[0],
         )
-        return ResultadoEnergiaMesorregiaoSerie(
+        resultado = ResultadoEnergiaMesorregiaoSerie(
             mesorregiao=mesorregiao,
             substrato=substrato,
             dados=dados,
         )
+        _energia_cache[cache_key] = resultado
+        return resultado
 
     def serie_potencial_por_municipio(
         self,
@@ -241,6 +280,10 @@ class EnergiaService:
         Retorna a série histórica completa de potencial energético de um município.
         Faz UMA consulta ao banco (todos os anos) em vez de N consultas (uma por ano).
         """
+        cache_key = f"serie_mun:{codigo_ibge}:{substrato or 'todos'}"
+        if cache_key in _energia_cache:
+            return _energia_cache[cache_key]
+
         if not self.rebanho_repo.existe_municipio(codigo_ibge):
             raise ValueError(f"Municipio nao encontrado: {codigo_ibge}")
 
@@ -267,10 +310,12 @@ class EnergiaService:
             [(ano, round(tj, 4)) for ano, tj in potencial_por_ano.items()],
             key=lambda x: x[0],
         )
-        return ResultadoEnergiaMunicipioSerie(
+        resultado = ResultadoEnergiaMunicipioSerie(
             codigo_ibge=codigo_ibge,
             municipio=municipio_nome,
             substrato=substrato,
             dados=dados,
         )
+        _energia_cache[cache_key] = resultado
+        return resultado
 

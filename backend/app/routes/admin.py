@@ -5,6 +5,8 @@ from app.config import get_settings
 from app.database import get_db
 from app.schemas.rebanho import SeedResponse
 from app.services.import_service import importar_excel
+from app.services.prophet_service import limpar_cache as limpar_cache_prophet
+from app.services.energia_service import limpar_cache_energia
 
 router = APIRouter()
 
@@ -22,6 +24,8 @@ def seed_database(
 
     try:
         resultado = importar_excel(db, settings.excel_path, limpar=forcar)
+        limpar_cache_prophet()  # Invalida modelos Prophet treinados
+        limpar_cache_energia()  # Invalida cache de cálculos de potencial de energia
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
