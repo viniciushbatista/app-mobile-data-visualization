@@ -1,406 +1,454 @@
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import Constants from "expo-constants";
-import { CartesianChart, Bar, Line, Area, useChartPressState } from "victory-native";
-import { LinearGradient, useFont, vec } from '@shopify/react-native-skia'
-import { Button, Card } from 'react-native-paper'
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+} from "react-native";
+import { CartesianChart, Bar, useChartPressState } from "victory-native";
+import { useFont } from "@shopify/react-native-skia";
 import { useState, useRef, useEffect } from "react";
-import { Dropdown } from 'react-native-element-dropdown'
-import ViewShot, { captureRef } from 'react-native-view-shot'
-import * as Sharing from 'expo-sharing'
-import { makeImageFromView } from '@shopify/react-native-skia';
-import { File, Paths } from 'expo-file-system';
-import { api, SUBSTRATO_MAP, REGION_NAME_MAP } from "../../services/api";
+import { Dropdown } from "react-native-element-dropdown";
+import ViewShot from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
+import { makeImageFromView } from "@shopify/react-native-skia";
+import { File, Paths } from "expo-file-system";
+import { api, SUBSTRATO_MAP } from "../../services/api";
 import { ChartCardSkeleton } from "../../shared/components/SkeletonLoader";
 import EmptyState from "../../shared/components/EmptyState";
+import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const staturBarHeight = Constants.statusBarHeight;
+type Item = { meso: string; value: number };
 
-type Item = {
-    meso: string;
-    value: number;
-};
+const mostRecentYear = 2022;
 
-type YearData = {
-    year: number;
-    value: number;
-};
+const dataDrop = Array.from({ length: 2024 - 1974 + 1 }, (_, i) => ({
+  label: String(1974 + i),
+  value: 1974 + i,
+}));
 
-const availableYears = [2020, 2021, 2022];
-const mostRecentYear = Math.max(...availableYears); // 2022
+const ANIMAIS = [
+  { id: "todos", label: "Todos" },
+  { id: "ovino", label: "Ovino" },
+  { id: "bovino", label: "Bovino" },
+  { id: "caprino", label: "Caprino" },
+  { id: "suino", label: "Suíno" },
+];
 
-const dataDrop = [
-    { label: '2020', value: 2020 },
-    { label: '2021', value: 2021 },
-    { label: '2022', value: 2022 },
+const LEGENDA = [
+  { sigla: "M", nome: "Mata Paraibana" },
+  { sigla: "A", nome: "Agreste" },
+  { sigla: "B", nome: "Borborema" },
+  { sigla: "S", nome: "Sertão" },
 ];
 
 export default function Dashboard() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const viewRef1 = useRef(null);
 
-    const viewRef1 = useRef(null);
-    const viewRef2 = useRef(null);
+  const exportarGrafico = async (ref: React.RefObject<any>, nomeArquivo: string) => {
+    try {
+      const image = await makeImageFromView(ref);
+      if (!image) return;
+      const base64 = image.encodeToBase64();
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const file = new File(Paths.cache, nomeArquivo);
+      file.create({ overwrite: true });
+      file.write(bytes);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "image/jpeg",
+        dialogTitle: "Salvar gráfico",
+      });
+    } catch (err) {
+      console.error("Erro ao exportar:", err);
+    }
+  };
 
-    const exportarGrafico = async (ref: React.RefObject<any>, nomeArquivo: string) => {
-        try {
-            const image = await makeImageFromView(ref);
-            if (!image) return;
+  const [selectedAnimal, setSelectedAnimal] = useState<
+    "ovino" | "bovino" | "caprino" | "galinaceo" | "suino" | "equino" | "todos"
+  >("todos");
+  const [selectedYear, setSelectedYear] = useState<number>(mostRecentYear);
 
-            const base64 = image.encodeToBase64();
-            const binaryString = atob(base64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
+  const [barChartData, setBarChartData] = useState<Item[]>([
+    { meso: "0", value: 0 },
+    { meso: "M", value: 0 },
+    { meso: "A", value: 0 },
+    { meso: "B", value: 0 },
+    { meso: "S", value: 0 },
+  ]);
+  const [carregandoBarras, setCarregandoBarras] = useState(false);
 
-            const file = new File(Paths.cache, nomeArquivo);
-            file.create({ overwrite: true });
-            file.write(bytes);
+  const carregarDadosGraficoBarras = async () => {
+    setCarregandoBarras(true);
+    try {
+      const substratoDb =
+        selectedAnimal === "todos" ? undefined : SUBSTRATO_MAP[selectedAnimal];
 
-            await Sharing.shareAsync(file.uri, {
-                mimeType: 'image/jpeg',
-                dialogTitle: 'Salvar gráfico',
-            });
-        } catch (err) {
-            console.error('Erro ao exportar:', err);
-        }
-    };
+      const mapaLabel: Record<string, string> = {
+        "Mata Paraibana": "M",
+        "Agreste Paraibano": "A",
+        Borborema: "B",
+        "Sertão Paraibano": "S",
+      };
 
-    const [selectedAnimal, setSelectedAnimal] = useState<"ovino" | "bovino" | "caprino" | "galinaceo" | "suino" | "equino" | "todos">("todos");
-    const [selectedYear, setSelectedYear] = useState<number>(mostRecentYear);
-    const [selectedRegion, setSelectedRegion] = useState<"mata" | "agreste" | "borborema" | "sertao">("mata");
+      if (selectedAnimal === "todos") {
+        const totais = await api.getEnergiaMesorregioesTotais(selectedYear);
+        const resultados = totais.map((item) => ({
+          meso: mapaLabel[item.mesorregiao] ?? item.mesorregiao,
+          value: parseFloat(item.potencial_tj.toFixed(2)),
+        }));
+        setBarChartData([{ meso: "0", value: 0 }, ...resultados]);
+      } else {
+        const regioes = [
+          { key: "Mata Paraibana", label: "M" },
+          { key: "Agreste Paraibano", label: "A" },
+          { key: "Borborema", label: "B" },
+          { key: "Sertão Paraibano", label: "S" },
+        ];
+        const promessas = regioes.map(async (r) => {
+          try {
+            const res = await api.getEnergiaMesorregiao(r.key, selectedYear, substratoDb);
+            return { meso: r.label, value: parseFloat(res.potencial_tj.toFixed(2)) };
+          } catch {
+            return { meso: r.label, value: 0 };
+          }
+        });
+        const resultados = await Promise.all(promessas);
+        setBarChartData([{ meso: "0", value: 0 }, ...resultados]);
+      }
+    } catch (error) {
+      console.error("[Dashboard] Erro ao carregar dados:", error);
+    } finally {
+      setCarregandoBarras(false);
+    }
+  };
 
-    const [barChartData, setBarChartData] = useState<Item[]>([
-        { meso: "0", value: 0 },
-        { meso: "M", value: 0 },
-        { meso: "A", value: 0 },
-        { meso: "B", value: 0 },
-        { meso: "S", value: 0 },
-    ]);
-    const [lineChartData, setLineChartData] = useState<YearData[]>([]);
+  useEffect(() => {
+    carregarDadosGraficoBarras();
+  }, [selectedAnimal, selectedYear]);
 
-    const [carregandoBarras, setCarregandoBarras] = useState(false);
-    const [carregandoLinhas, setCarregandoLinhas] = useState(false);
+  const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
 
-    // Carrega dados do Gráfico de Barras (Mesorregiões do ano/substrato)
-    const carregarDadosGraficoBarras = async () => {
-        setCarregandoBarras(true);
-        try {
-            const substratoDb = selectedAnimal === "todos" ? undefined : SUBSTRATO_MAP[selectedAnimal];
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <ScrollView showsVerticalScrollIndicator={false}>
 
-            const mapaLabel: Record<string, string> = {
-                'Mata Paraibana': 'M',
-                'Agreste Paraibano': 'A',
-                'Borborema': 'B',
-                'Sertão Paraibano': 'S',
-            };
-
-            if (selectedAnimal === "todos") {
-                // Modo "todos": 1 única chamada retorna todas as regiões
-                const totais = await api.getEnergiaMesorregioesTotais(selectedYear);
-                const resultados = totais.map(item => ({
-                    meso: mapaLabel[item.mesorregiao] ?? item.mesorregiao,
-                    value: parseFloat(item.potencial_tj.toFixed(2))
-                }));
-                setBarChartData([{ meso: "0", value: 0 }, ...resultados]);
-            } else {
-                // Substrato específico: 4 chamadas em paralelo
-                const regioes = [
-                    { key: 'Mata Paraibana', label: 'M' },
-                    { key: 'Agreste Paraibano', label: 'A' },
-                    { key: 'Borborema', label: 'B' },
-                    { key: 'Sertão Paraibano', label: 'S' }
-                ];
-
-                const promessas = regioes.map(async (r) => {
-                    try {
-                        const res = await api.getEnergiaMesorregiao(r.key, selectedYear, substratoDb);
-                        return { meso: r.label, value: parseFloat(res.potencial_tj.toFixed(2)) };
-                    } catch (err) {
-                        console.error(`Erro ao carregar dados do gráfico de barras para ${r.key}:`, err);
-                        return { meso: r.label, value: 0 };
-                    }
-                });
-
-                const resultados = await Promise.all(promessas);
-                setBarChartData([{ meso: "0", value: 0 }, ...resultados]);
-            }
-        } catch (error) {
-            console.error('[Dashboard] Erro geral ao carregar dados do gráfico de barras:', error);
-        } finally {
-            setCarregandoBarras(false);
-        }
-    };
-
-    // Carrega dados do Gráfico de Linhas (Série histórica de potencial energético da mesorregião)
-    // O gráfico de linha sempre exibe o TOTAL (soma de todos os substratos) — independente do filtro de pill chips
-    const carregarDadosGraficoLinhas = async () => {
-        setCarregandoLinhas(true);
-        try {
-            const nomeMesoReal = REGION_NAME_MAP[selectedRegion];
-
-            // Sempre passa undefined para buscar o total de todos os substratos
-            const serieRes = await api.getEnergiaMesorregioSerie(nomeMesoReal, undefined);
-
-            if (!serieRes || !serieRes.dados || serieRes.dados.length === 0) {
-                setLineChartData([]);
-                return;
-            }
-
-            const resultados = serieRes.dados.map(item => ({
-                year: item.ano,
-                value: parseFloat(item.potencial_tj.toFixed(2)),
-            }));
-            setLineChartData(resultados);
-        } catch (error) {
-            console.error('[Dashboard] Erro geral ao carregar dados do gráfico de linhas:', error);
-        } finally {
-            setCarregandoLinhas(false);
-        }
-    };
-
-    useEffect(() => {
-        carregarDadosGraficoBarras();
-    }, [selectedAnimal, selectedYear]);
-
-    useEffect(() => {
-        carregarDadosGraficoLinhas();
-    }, [selectedRegion]); // Apenas a região — o filtro de substrato NÃO afeta o gráfico de linha
-
-    const fonts = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
-    const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
-
-    // Calcular o domínio dinâmico do eixo Y para melhorar a escala
-    const valuesY = lineChartData.map(d => d.value);
-    const minY = valuesY.length > 0 ? Math.min(...valuesY) : 0;
-    const maxY = valuesY.length > 0 ? Math.max(...valuesY) : 100;
-    const paddingY = (maxY - minY) * 0.1 || 10;
-    const domainY = [Math.max(0, minY - paddingY), maxY + paddingY] as [number, number];
-
-    return (
-        <View className="flex-1 bg-white ">
-            <ScrollView>
-                <View className="gap-4 p-4">
-                    <View className="bottom-1">
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ gap: 10, paddingHorizontal: 4 }}
-                            className="mt-8"
-                        >
-                            {[
-                                { id: "todos", label: "Todos" },
-                                { id: "ovino", label: "Ovino" },
-                                { id: "bovino", label: "Bovino" },
-                                { id: "caprino", label: "Caprino" },
-                                { id: "suino", label: "Suíno" },
-                                { id: "equino", label: "Equino" },
-                                { id: "galinaceo", label: "Galináceo" },
-                            ].map((item) => {
-                                const isSelected = selectedAnimal === item.id;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        onPress={() => setSelectedAnimal(item.id as any)}
-                                        style={{
-                                            backgroundColor: isSelected ? "#2D6EFF" : "#F1F5F9",
-                                            paddingHorizontal: 16,
-                                            paddingVertical: 8,
-                                            borderRadius: 20,
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                        }}
-                                    >
-                                        <Text
-                                            style={{
-                                                color: isSelected ? "#FFFFFF" : "#4B5563",
-                                                fontWeight: isSelected ? "bold" : "500",
-                                                fontSize: 14,
-                                            }}
-                                        >
-                                            {item.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </ScrollView>
-                    </View>
-                    <View className="items-end">
-                        <Dropdown
-                            data={dataDrop}            // dados do dropdown
-                            labelField="label"             // o campo que mostra texto
-                            valueField="value"             // o campo que guarda valor
-                            placeholder="Selecione..."     // texto quando nada selecionado
-                            value={selectedYear}                  // valor selecionado
-                            onChange={item => {
-                                setSelectedYear(item.value);        // atualiza o estado ao selecionar
-                                console.log("Selecionado:", item);
-                            }}
-                            style={{
-                                width: 150,
-                                borderWidth: 1,
-                                borderColor: "#ccc",
-                                borderRadius: 8,
-                                paddingHorizontal: 8,
-                                height: 30,
-                            }}
-                        />
-                    </View>
-                    <View ref={viewRef1} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
-                        <View style={{ height: 400, width: '95%' }} className="mt-1 justify-center">
-                            {carregandoBarras ? (
-                            <ChartCardSkeleton />
-                        ) : (
-                                <>
-                                    <CartesianChart
-                                        data={barChartData}
-                                        xKey="meso"
-                                        yKeys={["value"]}
-                                        axisOptions={{
-                                            tickCount: 6,
-                                            font,
-                                            formatYLabel: (value) => `${value}TJ`
-                                        }}
-                                        domainPadding={{ right: 50, top: 30 }}
-                                    >
-                                        {({ points, chartBounds }) => (
-                                            <Bar
-                                                color="#2D6EFF"
-                                                chartBounds={chartBounds}
-                                                points={points.value}
-                                                barWidth={35}
-                                                animate={{
-                                                    type: "timing"
-                                                }}
-                                            />
-                                        )}
-                                    </CartesianChart>
-                                    <View className="m-4">
-                                        <Text>M = Mata Paraibana</Text>
-                                        <Text>A = Agreste</Text>
-                                        <Text>B = Borborema</Text>
-                                        <Text>S = Sertão</Text>
-                                    </View>
-                                </>
-                            )}
-                        </View>
-                    </View>
-                </View>
-                <View className="flex-row justify-between items-center p-4">
-                    <Button icon="download" mode="text" textColor="#000000" onPress={() => exportarGrafico(viewRef1, 'grafico1.png')}>
-                        Exportar
-                    </Button>
-                </View>
-                <View className="gap-4 p-4">
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ gap: 10, paddingHorizontal: 4 }}
-                        className="mt-8"
-                    >
-                        {[
-                            { id: "mata", label: "Mata" },
-                            { id: "agreste", label: "Agreste" },
-                            { id: "borborema", label: "Borborema" },
-                            { id: "sertao", label: "Sertão" },
-                        ].map((item) => {
-                            const isSelected = selectedRegion === item.id;
-                            return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    onPress={() => setSelectedRegion(item.id as any)}
-                                    style={{
-                                        backgroundColor: isSelected ? "#2D6EFF" : "#F1F5F9",
-                                        paddingHorizontal: 16,
-                                        paddingVertical: 8,
-                                        borderRadius: 20,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                    }}
-                                    activeOpacity={0.8}
-                                >
-                                    <Text
-                                        style={{
-                                            color: isSelected ? "#FFFFFF" : "#4B5563",
-                                            fontWeight: isSelected ? "bold" : "500",
-                                            fontSize: 14,
-                                        }}
-                                    >
-                                        {item.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
-                <View ref={viewRef2} collapsable={false} style={{ backgroundColor: '#ffffff' }}>
-                    <View style={{ height: 400, width: '95%' }} className="mt-6 px-2 justify-center">
-                        {carregandoLinhas ? (
-                            <ChartCardSkeleton />
-                        ) : lineChartData.length === 0 ? (
-                            <EmptyState
-                              icon="show-chart"
-                              title="Sem dados históricos"
-                              description="Não há dados suficientes para o substrato e região selecionados."
-                            />
-                        ) : (
-                            <CartesianChart
-                                data={lineChartData}
-                                xKey="year"
-                                yKeys={["value"]}
-                                domain={{ y: domainY }}
-                                axisOptions={{
-                                    tickCount: { x: 5, y: 6 }, // Limita marcadores para evitar acúmulo no X
-                                    font: fonts,               // Fonte para os labels
-                                    formatYLabel: (v) => {
-                                        if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M TJ`;
-                                        if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K TJ`;
-                                        return `${v.toFixed(0)} TJ`;
-                                    },
-                                    formatXLabel: (v) => String(v),
-                                }}
-                                domainPadding={{ right: 20, top: 30, left: 20 }}
-                            >
-                                {/* PASSO 9: Renderizar a linha */}
-                                {/* Esta função recebe "points" que contém os pontos calculados */}
-                                {({ points, chartBounds }) => (
-                                    <>
-                                        <Area
-                                            points={points.value}
-                                            y0={chartBounds.bottom}
-                                            color="rgba(45, 110, 255, 0.12)"
-                                            animate={{ type: "timing", duration: 300 }}
-                                            curveType="natural"
-                                        />
-                                        <Line
-                                            // points.value porque definimos yKeys={["value"]}
-                                            points={points.value}
-
-                                            // Cor da linha
-                                            color="#2D6EFF"
-
-                                            // Espessura da linha
-                                            strokeWidth={3}
-
-                                            // Animação ao renderizar
-                                            animate={{
-                                                type: "timing",
-                                                duration: 300
-                                            }}
-
-                                            // Tipo de curva (pode ser: "linear", "natural", "step")
-                                            curveType="natural"
-                                        />
-                                    </>
-                                )}
-                            </CartesianChart>
-                        )}
-                    </View>
-                </View>
-                <View className="flex-row justify-between items-center p-4">
-                    <Button icon="download" mode="text" textColor="#000000" onPress={() => exportarGrafico(viewRef2, 'grafico2.png')}>
-                        Exportar
-                    </Button>
-                </View>
-            </ScrollView>
+        {/* ── HEADER ── */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerIcon}>
+            <MaterialIcons name="menu" size={22} color="#1E293B" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Dashboard</Text>
+          <TouchableOpacity style={styles.headerIcon}>
+            <MaterialIcons name="tune" size={22} color="#1E293B" />
+          </TouchableOpacity>
         </View>
-    );
-}   
+
+        <View style={styles.content}>
+          {/* ── PILL CHIPS DE SUBSTRATO ── */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsRow}
+          >
+            {ANIMAIS.map((item) => {
+              const isSelected = selectedAnimal === item.id;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => setSelectedAnimal(item.id as any)}
+                  style={[styles.pill, isSelected && styles.pillSelected]}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.pillText, isSelected && styles.pillTextSelected]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* ── DROPDOWN DE ANO ── */}
+          <View style={styles.yearRow}>
+            <Dropdown
+              data={dataDrop}
+              labelField="label"
+              valueField="value"
+              placeholder="Selecione..."
+              value={selectedYear}
+              onChange={(item) => setSelectedYear(item.value)}
+              placeholderStyle={{ fontSize: 13, color: "#94A3B8" }}
+              selectedTextStyle={{ fontSize: 13, fontWeight: "700", color: "#1E293B" }}
+              style={styles.yearDropdown}
+            />
+          </View>
+
+          {/* ── SEÇÃO: GRÁFICO DE BARRAS ── */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>
+              Potencial energético por mesorregião (TJ)
+            </Text>
+
+            <View ref={viewRef1} collapsable={false} style={{ backgroundColor: "#FFFFFF" }}>
+              <View style={styles.chartArea}>
+                {carregandoBarras ? (
+                  <ChartCardSkeleton />
+                ) : (
+                  <CartesianChart
+                    data={barChartData}
+                    xKey="meso"
+                    yKeys={["value"]}
+                    axisOptions={{
+                      tickCount: 6,
+                      font,
+                      formatYLabel: (value) => `${value}TJ`,
+                    }}
+                    domainPadding={{ right: 50, top: 30 }}
+                  >
+                    {({ points, chartBounds }) => (
+                      <Bar
+                        color="#2563EB"
+                        chartBounds={chartBounds}
+                        points={points.value}
+                        barWidth={35}
+                        animate={{ type: "timing" }}
+                      />
+                    )}
+                  </CartesianChart>
+                )}
+              </View>
+            </View>
+
+            {/* Legenda */}
+            <View style={styles.legendRow}>
+              {LEGENDA.map((l) => (
+                <View key={l.sigla} style={styles.legendItem}>
+                  <View style={styles.legendDot} />
+                  <Text style={styles.legendText}>
+                    {l.sigla} = {l.nome}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Exportar */}
+            <TouchableOpacity
+              style={styles.exportBtn}
+              onPress={() => exportarGrafico(viewRef1, "grafico_barras.png")}
+              activeOpacity={0.75}
+            >
+              <MaterialIcons name="download" size={15} color="#64748B" />
+              <Text style={styles.exportText}>Exportar gráfico</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── CARD "ANÁLISES POR MESORREGIÃO" ── */}
+          <TouchableOpacity
+            style={styles.analysisCard}
+            activeOpacity={0.78}
+            onPress={() => router.push("/mesoregion-analysis")}
+          >
+            <View style={styles.analysisIconWrap}>
+              <MaterialIcons name="history" size={20} color="#2563EB" />
+            </View>
+            <View style={styles.analysisText}>
+              <Text style={styles.analysisTitle}>Análises por mesorregião</Text>
+              <Text style={styles.analysisSub}>
+                Veja a evolução histórica de cada região
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color="#CBD5E1" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F8FAFC",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  content: {
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+  // Pills
+  pillsRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  pillSelected: {
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  pillTextSelected: {
+    color: "#FFFFFF",
+  },
+  // Year dropdown
+  yearRow: {
+    alignItems: "flex-end",
+  },
+  yearDropdown: {
+    width: 110,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    height: 34,
+    backgroundColor: "#FFFFFF",
+  },
+  // Section card
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 12,
+  },
+  chartArea: {
+    height: 280,
+    width: "100%",
+  },
+  legendRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#2563EB",
+  },
+  legendText: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "flex-start",
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  exportText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  // Analysis card
+  analysisCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  analysisIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  analysisText: {
+    flex: 1,
+  },
+  analysisTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  analysisSub: {
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+});

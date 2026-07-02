@@ -30,6 +30,30 @@ export default function RootLayout() {
             animation: "slide_from_right",
           }}
         />
+        <Stack.Screen
+          name="cities"
+          options={{
+            headerShown: true,
+            headerTitle: "Explorar Cidades",
+            headerTitleAlign: "center",
+            animation: "slide_from_right",
+            headerTintColor: "#2563EB",
+            headerStyle: { backgroundColor: "#FFFFFF" },
+            headerTitleStyle: { fontWeight: "700", color: "#1E293B" },
+          }}
+        />
+        <Stack.Screen
+          name="mesoregion-analysis"
+          options={{
+            headerShown: true,
+            headerTitle: "Análises por Mesorregião",
+            headerTitleAlign: "center",
+            animation: "slide_from_right",
+            headerTintColor: "#2563EB",
+            headerStyle: { backgroundColor: "#FFFFFF" },
+            headerTitleStyle: { fontWeight: "700", color: "#1E293B" },
+          }}
+        />
       </Stack>
 
       {/* Overlay de splash in-app — renderizado por cima de tudo */}

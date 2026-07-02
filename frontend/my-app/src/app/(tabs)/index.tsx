@@ -1,339 +1,387 @@
-import { View, ScrollView, TouchableOpacity, KeyboardAvoidingView } from "react-native";
-import { Card, Button, Text, Searchbar, Surface, ActivityIndicator } from "react-native-paper";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+} from "react-native";
+import { Text, ActivityIndicator } from "react-native-paper";
 import MapaParaiba, { MapaParaibaRef } from "../../shared/components/map/PbMap";
-import { useRef, useState, useEffect } from 'react';
-import { Dropdown } from 'react-native-element-dropdown';
+import { useRef, useState, useEffect } from "react";
+import { Dropdown } from "react-native-element-dropdown";
 import { api } from "../../services/api";
-import { ListRowSkeleton } from "../../shared/components/SkeletonLoader";
-import EmptyState from "../../shared/components/EmptyState";
+import { useRouter } from "expo-router";
+import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const anosDisponiveis = Array.from({ length: 2024 - 1973 + 1 }, (_, i) => {
-  const ano = String(1973 + i);
+const anosDisponiveis = Array.from({ length: 2024 - 1974 + 1 }, (_, i) => {
+  const ano = String(1974 + i);
   return { label: ano, value: ano };
 });
 
 export default function MapaScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const mapaRef = useRef<MapaParaibaRef>(null);
 
-  const [anoSelecionado, setAnoSelecionado] = useState('2021');
+  const [anoSelecionado, setAnoSelecionado] = useState("2021");
   const [regiaoSelecionada, setRegiaoSelecionada] = useState<{
     nome: string;
     valor: number;
   } | null>(null);
+  const [potencialTotal, setPotencialTotal] = useState<number | null>(null);
+  const [carregandoTotal, setCarregandoTotal] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [cidades, setCidades] = useState<any[]>([]);
-  const [filteredCities, setFilteredCities] = useState<any[]>([]);
-  const [selectedCity, setSelectedCity] = useState<any | null>(null);
-  const [carregandoCidades, setCarregandoCidades] = useState(false);
-
-  // 1. Efeito para carregar potenciais das mesorregiões do mapa
+  // Carrega potencial total da Paraíba (soma de todas as mesorregiões)
   useEffect(() => {
     let isMounted = true;
-    
-    const carregarDadosMapa = async () => {
+    const carregarTotal = async () => {
+      setCarregandoTotal(true);
       try {
-        const totaisMeso = await api.getEnergiaMesorregioesTotais(Number(anoSelecionado));
-        
+        const totaisMeso = await api.getEnergiaMesorregioesTotais(
+          Number(anoSelecionado)
+        );
         if (!isMounted) return;
+        const total = totaisMeso.reduce(
+          (acc, item) => acc + item.potencial_tj,
+          0
+        );
+        setPotencialTotal(parseFloat(total.toFixed(3)));
 
-        // Mapeia para o formato esperado pelo ECharts
-        const dadosFormatados = totaisMeso.map(item => ({
+        const dadosFormatados = totaisMeso.map((item) => ({
           name: item.mesorregiao,
-          value: item.potencial_tj
+          value: item.potencial_tj,
         }));
-
-        // Injeta os dados reais no mapa
         mapaRef.current?.atualizarDados(dadosFormatados);
-        
-        // Se já tiver uma região selecionada, atualiza seu potencial
+
         if (regiaoSelecionada) {
-          const mesoAtualizada = totaisMeso.find(r => r.mesorregiao === regiaoSelecionada.nome);
+          const mesoAtualizada = totaisMeso.find(
+            (r) => r.mesorregiao === regiaoSelecionada.nome
+          );
           if (mesoAtualizada) {
             setRegiaoSelecionada({
               nome: mesoAtualizada.mesorregiao,
-              valor: mesoAtualizada.potencial_tj
+              valor: mesoAtualizada.potencial_tj,
             });
           }
         }
       } catch (error) {
-        console.error('[MapaScreen] Erro ao carregar dados de energia do mapa:', error);
-      }
-    };
-
-    carregarDadosMapa();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [anoSelecionado]);
-
-  // 2. Efeito para carregar a lista de cidades com dados de rebanho reais
-  useEffect(() => {
-    let isMounted = true;
-
-    const carregarMunicipios = async () => {
-      setCarregandoCidades(true);
-      try {
-        const res = await api.getMunicipiosTotais(Number(anoSelecionado));
-        if (!isMounted) return;
-
-        const listaCidades = res.dados.map(item => ({
-          codigo_ibge: item.codigo_ibge,
-          nome: item.municipio,
-          mesorregiao: item.mesorregiao,
-          potencial: null as number | null | 'sem_dado', // null=não carregado, 'sem_dado'=sem dados, number=valor
-        }));
-
-        setCidades(listaCidades);
-      } catch (error) {
-        console.error('[MapaScreen] Erro ao carregar municípios:', error);
+        console.error("[MapaScreen] Erro ao carregar dados:", error);
       } finally {
-        if (isMounted) setCarregandoCidades(false);
+        if (isMounted) setCarregandoTotal(false);
       }
     };
-
-    carregarMunicipios();
-
+    carregarTotal();
     return () => {
       isMounted = false;
     };
   }, [anoSelecionado]);
 
-  // 3. Efeito para filtrar cidades de acordo com a busca
-  useEffect(() => {
-    if (searchQuery.length === 0) {
-      setFilteredCities(cidades.slice(0, 20));
-      return;
-    }
-
-    const filtered = cidades.filter(cidade =>
-      cidade.nome.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    setFilteredCities(filtered.slice(0, 10));
-  }, [searchQuery, cidades]);
+  const valorExibido = regiaoSelecionada?.valor ?? potencialTotal;
+  const labelExibido = regiaoSelecionada
+    ? regiaoSelecionada.nome
+    : "Paraíba (total)";
 
   return (
-    <View className="flex-1 bg-white">
-      <ScrollView ref={scrollRef}>
-
-        {/* CARD REGIÃO */}
-        <View className="p-4 pt-2">
-          <Card 
-            mode="elevated" 
-            style={{ 
-              backgroundColor: '#FFFFFF', 
-              borderRadius: 12,
-              borderLeftWidth: 5,
-              borderLeftColor: regiaoSelecionada ? '#2D6EFF' : '#9CA3AF',
-              elevation: 2,
-              shadowColor: '#000000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.05,
-              shadowRadius: 8
-            }}
-          >
-            <Card.Content style={{ paddingVertical: 14, paddingHorizontal: 16 }}>
-              <Text
-                style={{ 
-                  fontWeight: 'bold', 
-                  fontSize: 26, 
-                  color: regiaoSelecionada ? '#2D6EFF' : '#1F2937' 
-                }}
-              >
-                {regiaoSelecionada?.valor != null
-                  ? `${regiaoSelecionada.valor.toLocaleString('pt-BR')} TJ`
-                  : 'Selecione uma região'}
-              </Text>
-              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4, fontWeight: '500' }}>
-                {regiaoSelecionada
-                  ? `Potencial energético total — ${regiaoSelecionada.nome}`
-                  : 'Toque em uma mesorregião no mapa para carregar o potencial'}
-              </Text>
-            </Card.Content>
-          </Card>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
+        {/* ── HEADER CUSTOMIZADO ── */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.headerIcon}>
+            <MaterialIcons name="menu" size={22} color="#1E293B" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Mapa</Text>
+          <TouchableOpacity style={styles.headerIcon}>
+            <MaterialIcons name="notifications-none" size={22} color="#1E293B" />
+          </TouchableOpacity>
         </View>
 
-        {/* DROPDOWN */}
-        <View className="px-4 items-end mt-1 mb-2">
+        {/* ── CARD HERO AZUL ── */}
+        <View style={styles.heroContainer}>
+          <LinearGradient
+            colors={["#1E40AF", "#2563EB", "#3B82F6"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            {/* Círculo decorativo de fundo */}
+            <View style={styles.heroCircle} />
+
+            <View style={styles.heroContent}>
+              <View style={styles.heroLeft}>
+                <Text style={styles.heroLabel}>Potencial energético total</Text>
+                {carregandoTotal && potencialTotal === null ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" style={{ marginTop: 8 }} />
+                ) : (
+                  <Text style={styles.heroValue}>
+                    {valorExibido != null
+                      ? `${valorExibido.toLocaleString("pt-BR")} TJ`
+                      : "—"}
+                  </Text>
+                )}
+                <View style={styles.heroLocationRow}>
+                  <MaterialIcons name="place" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={styles.heroLocationText}>{labelExibido}</Text>
+                </View>
+              </View>
+              <View style={styles.heroBadge}>
+                <MaterialIcons name="bolt" size={28} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* ── DROPDOWN DE ANO ── */}
+        <View style={styles.dropdownRow}>
           <Dropdown
             data={anosDisponiveis}
             labelField="label"
             valueField="value"
             value={anoSelecionado}
-            onChange={item => {
+            onChange={(item) => {
               setAnoSelecionado(item.value);
               mapaRef.current?.atualizarAno(item.value);
             }}
-            placeholderStyle={{ fontSize: 13, color: '#9CA3AF' }}
-            selectedTextStyle={{ fontSize: 13, fontWeight: 'bold', color: '#1F2937' }}
-            style={{
-              width: 120,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              height: 32,
-              backgroundColor: '#F8FAFC'
-            }}
+            placeholderStyle={{ fontSize: 13, color: "#94A3B8" }}
+            selectedTextStyle={{ fontSize: 13, fontWeight: "700", color: "#1E293B" }}
+            style={styles.dropdown}
           />
         </View>
 
-        {/* MAPA */}
-        <View style={{ height: 450 }}>
+        {/* ── MAPA ── */}
+        <View style={styles.mapContainer}>
           <MapaParaiba
             ref={mapaRef}
-            onRegionPress={(nome, valor) => {
-              setRegiaoSelecionada({ nome, valor });
-            }}
+            onRegionPress={(nome, valor) =>
+              setRegiaoSelecionada({ nome, valor })
+            }
           />
         </View>
 
-        {/* BOTÃO */}
-        <View className="flex-row justify-between items-center p-4">
-          <Button icon="download" mode="text" textColor="#000000" onPress={() => mapaRef.current?.exportarMapa()}>
-            Exportar
-          </Button>
+        {/* ── CARDS DE ATALHO ── */}
+        <View style={styles.shortcutsRow}>
+          <TouchableOpacity
+            style={styles.shortcutCard}
+            activeOpacity={0.78}
+            onPress={() => router.push("/cities")}
+          >
+            <View style={[styles.shortcutIcon, { backgroundColor: "#EFF6FF" }]}>
+              <MaterialIcons name="location-city" size={18} color="#2563EB" />
+            </View>
+            <View style={styles.shortcutText}>
+              <Text style={styles.shortcutTitle}>Explorar cidades</Text>
+              <Text style={styles.shortcutSub}>Veja o potencial por cidade</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.shortcutCard}
+            activeOpacity={0.78}
+            onPress={() => router.push("/(tabs)/dashboard")}
+          >
+            <View style={[styles.shortcutIcon, { backgroundColor: "#EFF6FF" }]}>
+              <MaterialCommunityIcons name="chart-bar" size={18} color="#2563EB" />
+            </View>
+            <View style={styles.shortcutText}>
+              <Text style={styles.shortcutTitle}>Dashboard</Text>
+              <Text style={styles.shortcutSub}>Visualize análises e gráficos</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        {/* SEARCH */}
-        <View className="p-4">
-          <Surface style={{ borderRadius: 35 }}>
-            <Searchbar
-              placeholder="Buscar cidade da Paraíba"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={{ backgroundColor: '#FFFFFF' }}
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollRef.current?.scrollToEnd({ animated: true });
-                }, 100);
-              }}
-            />
-          </Surface>
+        {/* ── BOTÃO EXPORTAR ── */}
+        <TouchableOpacity
+          style={styles.exportBtn}
+          onPress={() => mapaRef.current?.exportarMapa()}
+          activeOpacity={0.75}
+        >
+          <MaterialIcons name="download" size={16} color="#64748B" />
+          <Text style={styles.exportText}>Exportar mapa</Text>
+        </TouchableOpacity>
 
-          {searchQuery.length === 0 && (
-            <Text style={{ marginTop: 5, color: "gray" }}>
-              Cidades
-            </Text>
-          )}
-
-          {searchQuery.length > 0 && (
-            <Text style={{ marginTop: 5, color: "gray" }}>
-              Resultados
-            </Text>
-          )}
-
-          {/* LISTA EXPANSÍVEL */}
-          <View style={{ height: 300 }}>
-            {carregandoCidades && cidades.length === 0 ? (
-              <View style={{ paddingTop: 8 }}>
-                <ListRowSkeleton />
-                <ListRowSkeleton />
-                <ListRowSkeleton />
-                <ListRowSkeleton />
-              </View>
-            ) : filteredCities.length === 0 && searchQuery.length > 0 ? (
-              <EmptyState
-                icon="search-off"
-                title="Nenhuma cidade encontrada"
-                description={`Nenhum resultado para "${searchQuery}". Verifique o nome e tente novamente.`}
-              />
-            ) : (
-              <ScrollView nestedScrollEnabled>
-                {filteredCities.map((item) => {
-                  const isSelected = selectedCity?.nome === item.nome;
-
-                  return (
-                    <TouchableOpacity
-                      key={item.nome}
-                      onPress={async () => {
-                        if (isSelected) {
-                          setSelectedCity(null);
-                        } else {
-                          setSelectedCity(item);
-
-                          if (item.potencial === null) {
-                            try {
-                              const res = await api.getEnergiaMunicipio(item.codigo_ibge, Number(anoSelecionado));
-                              if (!res.resultados || res.resultados.length === 0) {
-                                setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: 'sem_dado' } : c));
-                                setSelectedCity({ ...item, potencial: 'sem_dado' });
-                              } else {
-                                const potencialTotal = res.resultados.reduce((acc: number, curr: any) => acc + curr.potencial_tj, 0);
-                                const potencialFormatado = parseFloat(potencialTotal.toFixed(2));
-                                setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: potencialFormatado } : c));
-                                setSelectedCity({ ...item, potencial: potencialFormatado });
-                              }
-                            } catch (error) {
-                              console.error('[MapaScreen] Erro ao carregar potencial do município:', error);
-                              setCidades(prev => prev.map(c => c.codigo_ibge === item.codigo_ibge ? { ...c, potencial: 'sem_dado' } : c));
-                              setSelectedCity({ ...item, potencial: 'sem_dado' });
-                            }
-                          }
-                        }
-                      }}
-                      style={{
-                        paddingVertical: 14,
-                        paddingHorizontal: 16,
-                        borderLeftWidth: 4,
-                        borderLeftColor: isSelected ? "#2D6EFF" : "transparent",
-                        backgroundColor: isSelected ? "#F8FAFC" : "#FFFFFF",
-                        borderBottomWidth: 1,
-                        borderColor: "#F1F5F9",
-                        marginVertical: 2,
-                        borderRadius: 6,
-                        shadowColor: isSelected ? "#000000" : "transparent",
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.05,
-                        shadowRadius: 2,
-                        elevation: isSelected ? 1 : 0
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={{ fontWeight: "700", fontSize: 15, color: isSelected ? "#2D6EFF" : "#1F2937" }}>
-                          {item.nome}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: isSelected ? "#2D6EFF" : "#9CA3AF" }}>
-                          {isSelected ? "▲" : "▼"}
-                        </Text>
-                      </View>
-
-                      <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
-                        {item.mesorregiao}
-                      </Text>
-
-                      {isSelected && (
-                        <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
-                          {item.potencial === null ? (
-                            <ListRowSkeleton />
-                          ) : item.potencial === 'sem_dado' ? (
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', fontStyle: 'italic' }}>
-                              Dado não disponível para {anoSelecionado}
-                            </Text>
-                          ) : (
-                            <View>
-                              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
-                                Potencial: <Text style={{ color: '#2D6EFF', fontWeight: 'bold' }}>{item.potencial} TJ</Text>
-                              </Text>
-                              <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-                                Ano de referência: {anoSelecionado}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-
+        <View style={{ height: 20 }} />
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F8FAFC",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  // Card hero
+  heroContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  heroCard: {
+    borderRadius: 16,
+    padding: 20,
+    overflow: "hidden",
+    position: "relative",
+  },
+  heroCircle: {
+    position: "absolute",
+    right: -30,
+    top: -30,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  heroContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  heroLeft: {
+    flex: 1,
+  },
+  heroLabel: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: "500",
+    letterSpacing: 0.3,
+  },
+  heroValue: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginTop: 4,
+    letterSpacing: -0.5,
+  },
+  heroLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 6,
+  },
+  heroLocationText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "500",
+  },
+  heroBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+  },
+  // Dropdown
+  dropdownRow: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    alignItems: "flex-start",
+  },
+  dropdown: {
+    width: 110,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    height: 34,
+    backgroundColor: "#FFFFFF",
+  },
+  // Mapa
+  mapContainer: {
+    height: 340,
+    marginTop: 4,
+  },
+  // Atalhos
+  shortcutsRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 12,
+    marginTop: 12,
+  },
+  shortcutCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  shortcutIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shortcutText: {
+    flex: 1,
+  },
+  shortcutTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  shortcutSub: {
+    fontSize: 11,
+    color: "#94A3B8",
+    marginTop: 1,
+  },
+  // Export
+  exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    marginTop: 12,
+    marginLeft: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  exportText: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+});

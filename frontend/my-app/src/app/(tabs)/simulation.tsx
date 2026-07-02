@@ -1,25 +1,34 @@
-import { View, Text, TouchableOpacity, Keyboard } from "react-native";
-import { Dropdown } from 'react-native-element-dropdown';
-import { Button, TextInput, HelperText } from "react-native-paper";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  StatusBar,
+} from "react-native";
+import { Dropdown } from "react-native-element-dropdown";
+import { TextInput, HelperText } from "react-native-paper";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from "@expo/vector-icons";
 import { api } from "../../services/api";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const dataWaste = [
-  { label: 'Suíno', value: '1' },
-  { label: 'Bovino', value: '2' },
-  { label: 'Caprino', value: '3' },
-  { label: 'Ovino', value: '4' },
-  { label: 'Equino', value: '5' },
-  { label: 'Galináceo', value: '6' },
+  { label: "Suíno", value: "1" },
+  { label: "Bovino", value: "2" },
+  { label: "Caprino", value: "3" },
+  { label: "Ovino", value: "4" },
+  { label: "Equino", value: "5" },
+  { label: "Galináceo", value: "6" },
 ];
 
 const dataRegion = [
-  { label: 'Borborema', value: '1' },
-  { label: 'Agreste', value: '2' },
-  { label: 'Sertão', value: '3' },
-  { label: 'Mata Paraibana', value: '4' },
+  { label: "Borborema", value: "1" },
+  { label: "Agreste", value: "2" },
+  { label: "Sertão", value: "3" },
+  { label: "Mata Paraibana", value: "4" },
 ];
 
 const anoAtual = new Date().getFullYear();
@@ -28,6 +37,7 @@ const ANO_MAX_PROPHET = 2035;
 
 export default function Simulation() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     prefill_substrato?: string;
     prefill_quantidade?: string;
@@ -37,10 +47,10 @@ export default function Simulation() {
     prefill_municipioNome?: string;
   }>();
 
-  const [substrato, setSubstrato] = useState(params.prefill_substrato || '');
-  const [quantidade, setQuantidade] = useState(params.prefill_quantidade || '');
-  const [ano, setAno] = useState(params.prefill_ano || '');
-  const [regiao, setRegiao] = useState(params.prefill_regiao || '');
+  const [substrato, setSubstrato] = useState(params.prefill_substrato || "");
+  const [quantidade, setQuantidade] = useState(params.prefill_quantidade || "");
+  const [ano, setAno] = useState(params.prefill_ano || "");
+  const [regiao, setRegiao] = useState(params.prefill_regiao || "");
 
   const [cidadesList, setCidadesList] = useState<{ label: string; value: string }[]>([]);
   const [selectedCity, setSelectedCity] = useState<{ label: string; value: string } | null>(
@@ -49,10 +59,8 @@ export default function Simulation() {
       : null
   );
   const [carregandoCidades, setCarregandoCidades] = useState(false);
-
   const [tentouSimular, setTentouSimular] = useState(false);
 
-  // Estados e refs para toggle dos campos numéricos (fix teclado iOS)
   const [quantidadeAtiva, setQuantidadeAtiva] = useState(false);
   const [anoAtivo, setAnoAtivo] = useState(false);
   const quantidadeRef = useRef<any>(null);
@@ -78,7 +86,8 @@ export default function Simulation() {
     }
   };
 
-  const anoInvalido: boolean = !ano || Number(ano) < anoAtual || Number(ano) > ANO_MAX_PROPHET;
+  const anoInvalido: boolean =
+    !ano || Number(ano) < anoAtual || Number(ano) > ANO_MAX_PROPHET;
   const semLocalizacao = !regiao && !selectedCity;
 
   useEffect(() => {
@@ -86,30 +95,28 @@ export default function Simulation() {
     const fetchCidades = async () => {
       setCarregandoCidades(true);
       try {
-        const res = await api.getMunicipiosTotais(2021); // Usando ano base padrão para listar municípios
+        const res = await api.getMunicipiosTotais(2021);
         if (!isMounted) return;
-        const formatadas = res.dados.map(item => ({
+        const formatadas = res.dados.map((item: any) => ({
           label: item.municipio,
-          value: String(item.codigo_ibge)
+          value: String(item.codigo_ibge),
         }));
         setCidadesList(formatadas);
       } catch (error) {
-        console.error("Erro ao buscar municípios para a simulação:", error);
+        console.error("Erro ao buscar municípios:", error);
       } finally {
         if (isMounted) setCarregandoCidades(false);
       }
     };
     fetchCidades();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const limpar = () => {
-    setSubstrato('');
-    setQuantidade('');
-    setAno('');
-    setRegiao('');
+    setSubstrato("");
+    setQuantidade("");
+    setAno("");
+    setRegiao("");
     setSelectedCity(null);
     setTentouSimular(false);
     setQuantidadeAtiva(false);
@@ -121,80 +128,72 @@ export default function Simulation() {
     setTentouSimular(true);
     if (!substrato || !quantidade || anoInvalido || semLocalizacao) return;
     router.push({
-      pathname: '/simulationoutput',
-      params: { 
-        substrato, 
-        quantidade, 
-        ano, 
+      pathname: "/simulationoutput",
+      params: {
+        substrato,
+        quantidade,
+        ano,
         regiao,
-        codigoIbge: selectedCity ? selectedCity.value : '',
-        municipioNome: selectedCity ? selectedCity.label : ''
-      }
+        codigoIbge: selectedCity ? selectedCity.value : "",
+        municipioNome: selectedCity ? selectedCity.label : "",
+      },
     });
   };
 
-
   return (
-    <View className="flex-1 bg-white">
-      {/* Barra de ações do topo */}
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingTop: 12 }}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+
+      {/* ── HEADER ── */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Simulação</Text>
         <TouchableOpacity
-          onPress={() => router.push('/simulation-history')}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-            paddingHorizontal: 12,
-            paddingVertical: 7,
-            backgroundColor: '#EFF6FF',
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#BFDBFE',
-          }}
+          onPress={() => router.push("/simulation-history")}
+          style={styles.historyBtn}
           activeOpacity={0.75}
         >
-          <MaterialIcons name="history" size={16} color="#2D6EFF" />
-          <Text style={{ fontSize: 13, color: '#2D6EFF', fontWeight: '600' }}>Histórico</Text>
+          <MaterialIcons name="history" size={16} color="#2563EB" />
+          <Text style={styles.historyText}>Histórico</Text>
         </TouchableOpacity>
       </View>
 
-      <View className="mt-3 gap-4 p-6">
-
-        {/* SUBSTRATO */}
-        <View>
-          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
-            Substrato <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>(origem da biomassa) ⓘ</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* ── SUBSTRATO ── */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            Substrato{" "}
+            <Text style={styles.fieldHint}>(origem da biomassa)</Text>
           </Text>
           <Dropdown
             data={dataWaste}
-            style={{
-              backgroundColor: tentouSimular && !substrato ? '#FFF0F0' : '#F8FAFC',
-              borderWidth: 1,
-              borderColor: tentouSimular && !substrato ? '#B00020' : '#E2E8F0',
-              width: '100%',
-              height: 42,
-              borderRadius: 8,
-              paddingHorizontal: 12,
-            }}
-            placeholderStyle={{ fontSize: 14, color: '#9CA3AF' }}
-            selectedTextStyle={{ fontSize: 14, color: '#1F2937' }}
+            style={[
+              styles.dropdown,
+              tentouSimular && !substrato && styles.dropdownError,
+            ]}
+            placeholderStyle={styles.dropdownPlaceholder}
+            selectedTextStyle={styles.dropdownSelected}
             labelField="label"
             valueField="value"
             placeholder="Selecione o tipo de dejeto"
-            value={dataWaste.find(item => item.label === substrato)?.value ?? null}
-            onChange={(item: { label: string; value: string }) => setSubstrato(item.label)}
+            value={dataWaste.find((item) => item.label === substrato)?.value ?? null}
+            onChange={(item) => setSubstrato(item.label)}
           />
           <HelperText type="error" visible={tentouSimular && !substrato}>
             Selecione um substrato
           </HelperText>
         </View>
 
-        {/* QUANTIDADE */}
-        <View>
-          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
-            Incremento do Rebanho <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>(%) ⓘ</Text>
+        {/* ── QUANTIDADE ── */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            Incremento do Rebanho{" "}
+            <Text style={styles.fieldHint}>(%)</Text>
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={styles.inputRow}>
             <View style={{ flex: 1 }}>
               <TextInput
                 ref={quantidadeRef}
@@ -203,14 +202,9 @@ export default function Simulation() {
                 onChangeText={setQuantidade}
                 keyboardType="numeric"
                 mode="outlined"
-                outlineColor={quantidadeAtiva ? '#2D6EFF' : '#E2E8F0'}
-                activeOutlineColor="#2D6EFF"
-                style={{
-                  backgroundColor: quantidadeAtiva ? '#F0F5FF' : '#F1F3F6',
-                  height: 42,
-                  fontSize: 14,
-                  opacity: quantidadeAtiva ? 1 : 0.6,
-                }}
+                outlineColor={quantidadeAtiva ? "#2563EB" : "#E2E8F0"}
+                activeOutlineColor="#2563EB"
+                style={[styles.textInput, { opacity: quantidadeAtiva ? 1 : 0.6 }]}
                 editable={quantidadeAtiva}
                 error={tentouSimular && !quantidade}
               />
@@ -218,19 +212,15 @@ export default function Simulation() {
             <TouchableOpacity
               onPress={toggleQuantidade}
               activeOpacity={0.75}
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 8,
-                backgroundColor: quantidadeAtiva ? '#2D6EFF' : '#E2E8F0',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              style={[
+                styles.editBtn,
+                { backgroundColor: quantidadeAtiva ? "#2563EB" : "#E2E8F0" },
+              ]}
             >
               <MaterialIcons
-                name={quantidadeAtiva ? 'check' : 'edit'}
+                name={quantidadeAtiva ? "check" : "edit"}
                 size={20}
-                color={quantidadeAtiva ? '#FFFFFF' : '#6B7280'}
+                color={quantidadeAtiva ? "#FFFFFF" : "#6B7280"}
               />
             </TouchableOpacity>
           </View>
@@ -239,12 +229,13 @@ export default function Simulation() {
           </HelperText>
         </View>
 
-        {/* ANO */}
-        <View>
-          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>
-            Ano Alvo da Projeção <Text style={{ color: '#9CA3AF', fontWeight: 'normal', fontSize: 12 }}>ⓘ</Text>
+        {/* ── ANO ALVO ── */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            Ano Alvo da Projeção{" "}
+            <Text style={styles.fieldHint}>ⓘ</Text>
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={styles.inputRow}>
             <View style={{ flex: 1 }}>
               <TextInput
                 ref={anoRef}
@@ -257,14 +248,9 @@ export default function Simulation() {
                 }}
                 keyboardType="numeric"
                 mode="outlined"
-                outlineColor={anoAtivo ? '#2D6EFF' : '#E2E8F0'}
-                activeOutlineColor="#2D6EFF"
-                style={{
-                  backgroundColor: anoAtivo ? '#F0F5FF' : '#F1F3F6',
-                  height: 42,
-                  fontSize: 14,
-                  opacity: anoAtivo ? 1 : 0.6,
-                }}
+                outlineColor={anoAtivo ? "#2563EB" : "#E2E8F0"}
+                activeOutlineColor="#2563EB"
+                style={[styles.textInput, { opacity: anoAtivo ? 1 : 0.6 }]}
                 editable={anoAtivo}
                 error={tentouSimular && anoInvalido}
               />
@@ -272,19 +258,15 @@ export default function Simulation() {
             <TouchableOpacity
               onPress={toggleAno}
               activeOpacity={0.75}
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 8,
-                backgroundColor: anoAtivo ? '#2D6EFF' : '#E2E8F0',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              style={[
+                styles.editBtn,
+                { backgroundColor: anoAtivo ? "#2563EB" : "#E2E8F0" },
+              ]}
             >
               <MaterialIcons
-                name={anoAtivo ? 'check' : 'edit'}
+                name={anoAtivo ? "check" : "edit"}
                 size={20}
-                color={anoAtivo ? '#FFFFFF' : '#6B7280'}
+                color={anoAtivo ? "#FFFFFF" : "#6B7280"}
               />
             </TouchableOpacity>
           </View>
@@ -293,87 +275,260 @@ export default function Simulation() {
           </HelperText>
         </View>
 
-        {/* MESORREGIÃO */}
-        <View>
-          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>Mesorregião</Text>
-          <Dropdown
-            data={dataRegion}
-            style={{
-              backgroundColor: tentouSimular && semLocalizacao ? '#FFF0F0' : '#F8FAFC',
-              borderWidth: 1,
-              borderColor: tentouSimular && semLocalizacao ? '#B00020' : '#E2E8F0',
-              width: '100%',
-              height: 42,
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              opacity: selectedCity ? 0.5 : 1,
-            }}
-            placeholderStyle={{ fontSize: 14, color: '#9CA3AF' }}
-            selectedTextStyle={{ fontSize: 14, color: '#1F2937' }}
-            labelField="label"
-            valueField="value"
-            placeholder={selectedCity ? "Desativado (Município selecionado)" : "Selecione a Mesorregião"}
-            value={dataRegion.find(item => item.label === regiao)?.value ?? null}
-            onChange={(item: { label: string; value: string }) => {
-              setRegiao(item.label);
-              setSelectedCity(null);
-            }}
-            disable={!!selectedCity}
-          />
+        {/* ── MESORREGIÃO e MUNICÍPIO lado a lado ── */}
+        <View style={styles.locationRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fieldLabel}>Mesorregião</Text>
+            <Dropdown
+              data={dataRegion}
+              style={[
+                styles.dropdown,
+                tentouSimular && semLocalizacao && styles.dropdownError,
+                { opacity: selectedCity ? 0.45 : 1 },
+              ]}
+              placeholderStyle={styles.dropdownPlaceholder}
+              selectedTextStyle={styles.dropdownSelected}
+              labelField="label"
+              valueField="value"
+              placeholder={
+                selectedCity ? "Desativado" : "Selecione a mesorregião"
+              }
+              value={dataRegion.find((item) => item.label === regiao)?.value ?? null}
+              onChange={(item) => {
+                setRegiao(item.label);
+                setSelectedCity(null);
+              }}
+              disable={!!selectedCity}
+            />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fieldLabel}>Município</Text>
+            <Dropdown
+              data={cidadesList}
+              search
+              searchPlaceholder="Pesquisar município..."
+              style={[
+                styles.dropdown,
+                tentouSimular && semLocalizacao && styles.dropdownError,
+                { opacity: regiao ? 0.45 : 1 },
+              ]}
+              placeholderStyle={styles.dropdownPlaceholder}
+              selectedTextStyle={styles.dropdownSelected}
+              labelField="label"
+              valueField="value"
+              placeholder={
+                regiao
+                  ? "Desativado"
+                  : carregandoCidades
+                  ? "Carregando..."
+                  : "Pesquisar município"
+              }
+              value={selectedCity?.value ?? null}
+              onChange={(item) => {
+                setSelectedCity(item);
+                setRegiao("");
+              }}
+              disable={!!regiao || carregandoCidades}
+            />
+          </View>
+        </View>
+        <HelperText type="error" visible={tentouSimular && semLocalizacao}>
+          Selecione uma Mesorregião ou um Município
+        </HelperText>
+
+        {/* ── SEPARADOR ── */}
+        <View style={styles.separator}>
+          <View style={styles.separatorLine} />
+          <Text style={styles.separatorText}>OU</Text>
+          <View style={styles.separatorLine} />
         </View>
 
-        {/* SEPARADOR COM LINHAS LATERAIS */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: '#E2E8F0' }} />
-          <Text style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '700', paddingHorizontal: 12 }}>OU</Text>
-          <View style={{ flex: 1, height: 1, backgroundColor: '#E2E8F0' }} />
+        {/* ── BOTÕES ── */}
+        <View style={styles.buttonsRow}>
+          <TouchableOpacity
+            style={styles.btnSimular}
+            onPress={simular}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="play-arrow" size={20} color="#FFFFFF" />
+            <Text style={styles.btnSimularText}>Simular</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.btnLimpar}
+            onPress={limpar}
+            activeOpacity={0.75}
+          >
+            <MaterialIcons name="refresh" size={18} color="#2563EB" />
+            <Text style={styles.btnLimparText}>Limpar</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* MUNICÍPIO */}
-        <View>
-          <Text style={{ fontWeight: '700', color: '#374151', marginBottom: 6, fontSize: 14 }}>Município</Text>
-          <Dropdown
-            data={cidadesList}
-            search
-            searchPlaceholder="Pesquisar município..."
-            style={{
-              backgroundColor: tentouSimular && semLocalizacao ? '#FFF0F0' : '#F8FAFC',
-              borderWidth: 1,
-              borderColor: tentouSimular && semLocalizacao ? '#B00020' : '#E2E8F0',
-              width: '100%',
-              height: 42,
-              borderRadius: 8,
-              paddingHorizontal: 12,
-              opacity: regiao ? 0.5 : 1,
-            }}
-            placeholderStyle={{ fontSize: 14, color: '#9CA3AF' }}
-            selectedTextStyle={{ fontSize: 14, color: '#1F2937' }}
-            labelField="label"
-            valueField="value"
-            placeholder={regiao ? "Desativado (Mesorregião selecionada)" : (carregandoCidades ? "Carregando..." : "Pesquisar e selecionar município")}
-            value={selectedCity?.value ?? null}
-            onChange={(item: { label: string; value: string }) => {
-              setSelectedCity(item);
-              setRegiao('');
-            }}
-            disable={!!regiao || carregandoCidades}
-          />
-          <HelperText type="error" visible={tentouSimular && semLocalizacao}>
-            Selecione uma Mesorregião ou um Município
-          </HelperText>
-        </View>
-
-        {/* BOTÕES */}
-        <View className="flex-row justify-between items-center">
-          <Button mode="contained" buttonColor="#2D6EFF" className="w-60" onPress={simular}>
-            Simular
-          </Button>
-          <Button mode="contained" buttonColor="#2D6EFF" className="w-30" onPress={limpar}>
-            Limpar
-          </Button>
-        </View>
-
-      </View>
+        <View style={{ height: 32 }} />
+      </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#F8FAFC",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  historyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  historyText: {
+    fontSize: 13,
+    color: "#2563EB",
+    fontWeight: "600",
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    gap: 4,
+  },
+  // Field
+  fieldGroup: {
+    marginBottom: 4,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 6,
+  },
+  fieldHint: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontWeight: "400",
+  },
+  dropdown: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 46,
+  },
+  dropdownError: {
+    backgroundColor: "#FFF5F5",
+    borderColor: "#FCA5A5",
+  },
+  dropdownPlaceholder: {
+    fontSize: 14,
+    color: "#94A3B8",
+  },
+  dropdownSelected: {
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "500",
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  textInput: {
+    backgroundColor: "#F8FAFC",
+    height: 46,
+    fontSize: 14,
+  },
+  editBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Location row
+  locationRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  // Separator
+  separator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 12,
+    gap: 12,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E2E8F0",
+  },
+  separatorText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#94A3B8",
+  },
+  // Buttons
+  buttonsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  btnSimular: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#2563EB",
+    borderRadius: 12,
+    height: 50,
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  btnSimularText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  btnLimpar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 18,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#2563EB",
+    backgroundColor: "#FFFFFF",
+  },
+  btnLimparText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#2563EB",
+  },
+});

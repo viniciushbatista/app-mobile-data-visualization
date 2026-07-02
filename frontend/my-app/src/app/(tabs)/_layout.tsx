@@ -9,9 +9,9 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
-        tabBarActiveTintColor: "#2D6EFF",
-        tabBarInactiveTintColor: "#9CA3AF",
+        headerShown: false,
+        tabBarActiveTintColor: "#2563EB",
+        tabBarInactiveTintColor: "#94A3B8",
         tabBarStyle: {
           height: 62,
           paddingBottom: 8,
@@ -73,6 +73,11 @@ export default function TabsLayout() {
         name="sobre"
         options={{
           title: "Sobre",
+          headerShown: true,
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontWeight: "700", color: "#1E293B", fontSize: 17 },
+          headerStyle: { backgroundColor: "#F8FAFC" },
+          headerShadowVisible: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="info-outline" size={size} color={color} />
           ),
