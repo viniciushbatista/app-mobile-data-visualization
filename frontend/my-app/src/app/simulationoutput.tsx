@@ -411,20 +411,19 @@ export default function SimulationOutput() {
                   <Text style={newStyles.paramValue}>{substrato}</Text>
                 </View>
                 <View style={newStyles.paramChip}>
-                  <Text style={newStyles.paramLabel}>Dejeto {substrato.toLowerCase()}</Text>
-                  <Text style={newStyles.paramValue}>
-                    {codigoIbge ? municipioNome : regiao || '—'}
+                  <Text style={newStyles.paramLabel}>
+                    {codigoIbge ? 'Cidade' : 'Mesorregião'}
                   </Text>
-                </View>
-                <View style={newStyles.paramChip}>
-                  <Text style={newStyles.paramLabel}>Mesorregião</Text>
                   <Text style={newStyles.paramValue}>
-                    {codigoIbge ? 'Município' : regiao || '—'}
+                    {codigoIbge ? (municipioNome || '—') : (regiao || '—')}
                   </Text>
                 </View>
                 <View style={newStyles.paramChip}>
                   <Text style={newStyles.paramLabel}>Incremento do rebanho</Text>
                   <Text style={newStyles.paramValue}>{quantidade}%</Text>
+                  <Text style={[newStyles.paramLabel, { marginTop: 4, color: '#64748B' }]}>
+                    → {fmtCabecas(cenarioCabecas)} cabeças
+                  </Text>
                 </View>
                 <View style={newStyles.paramChip}>
                   <Text style={newStyles.paramLabel}>Ano alvo</Text>

@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { View } from "react-native";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSimulationHistory } from "../../shared/hooks/useSimulationHistory";
 
@@ -78,6 +79,26 @@ export default function TabsLayout() {
           headerTitleStyle: { fontWeight: "700", color: "#1E293B", fontSize: 17 },
           headerStyle: { backgroundColor: "#F8FAFC" },
           headerShadowVisible: false,
+          headerRight: () => (
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#FFFFFF",
+                marginRight: 16,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              <MaterialIcons name="help-outline" size={22} color="#1E293B" />
+            </View>
+          ),
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="info-outline" size={size} color={color} />
           ),

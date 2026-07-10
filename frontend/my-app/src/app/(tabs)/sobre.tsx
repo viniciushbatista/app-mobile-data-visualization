@@ -36,6 +36,7 @@ export default function Sobre() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
+
       {/* Sobre o Projeto */}
       <InfoCard icon="info" title="Sobre o Projeto" accentColor="#2D6EFF">
         <Text style={styles.bodyText}>

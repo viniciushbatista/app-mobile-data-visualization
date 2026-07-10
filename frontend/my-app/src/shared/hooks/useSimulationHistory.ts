@@ -63,5 +63,17 @@ export function useSimulationHistory() {
     }
   }, []);
 
-  return { history, saveSimulation, clearHistory, reload: loadHistory };
+  const deleteSimulation = useCallback(async (id: string) => {
+    try {
+      const json = await AsyncStorage.getItem(STORAGE_KEY);
+      const current: SimulationRecord[] = json ? JSON.parse(json) : [];
+      const updated = current.filter((r) => r.id !== id);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      setHistory(updated);
+    } catch (e) {
+      console.error('[useSimulationHistory] Erro ao deletar:', e);
+    }
+  }, []);
+
+  return { history, saveSimulation, clearHistory, deleteSimulation, reload: loadHistory };
 }

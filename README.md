@@ -1,7 +1,7 @@
 # Aplicativo de Visualização e Análise de Potencial de Produção de Biogás
 
 ## Descrição
-Aplicativo mobile para visualização e análise de dados de produção de biogás, composto por um backend em FastAPI e um frontend desenvolvido com React/Expo.
+Aplicativo mobile para visualização e análise de dados de produção de biogás, composto por um backend em FastAPI e um frontend desenvolvido com React Native/Expo.
 
 ## Pré‑requisitos
 - **Python 3.9+**
@@ -38,9 +38,4 @@ cd ../frontend/my-app
 npx expo start
 ```
 
-## Licença
-Este projeto está licenciado sob a MIT License.
-
-## Autor
-Vinícius Batista – [GitHub](https://github.com/vinicb)
 

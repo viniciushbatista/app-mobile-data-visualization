@@ -23,7 +23,15 @@ function formatDate(isoString: string): string {
   });
 }
 
-function HistoryCard({ record, onSimulateAgain }: { record: SimulationRecord; onSimulateAgain: (r: SimulationRecord) => void }) {
+function HistoryCard({
+  record,
+  onSimulateAgain,
+  onDelete,
+}: {
+  record: SimulationRecord;
+  onSimulateAgain: (r: SimulationRecord) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
     <View style={styles.card}>
       {/* Barra lateral colorida */}
@@ -40,7 +48,16 @@ function HistoryCard({ record, onSimulateAgain }: { record: SimulationRecord; on
             />
             <Text style={styles.localizacaoText}>{record.localizacao}</Text>
           </View>
-          <Text style={styles.dateText}>{formatDate(record.dataSalva)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={styles.dateText}>{formatDate(record.dataSalva)}</Text>
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={() => onDelete(record.id)}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="delete-outline" size={16} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Tags de parâmetros */}
@@ -83,7 +100,7 @@ function HistoryCard({ record, onSimulateAgain }: { record: SimulationRecord; on
 
 export default function SimulationHistory() {
   const router = useRouter();
-  const { history, clearHistory } = useSimulationHistory();
+  const { history, clearHistory, deleteSimulation } = useSimulationHistory();
 
   const handleClear = () => {
     Alert.alert(
@@ -95,6 +112,21 @@ export default function SimulationHistory() {
           text: 'Limpar',
           style: 'destructive',
           onPress: clearHistory,
+        },
+      ]
+    );
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Excluir simulação',
+      'Deseja remover este registro do histórico?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => deleteSimulation(id),
         },
       ]
     );
@@ -144,6 +176,7 @@ export default function SimulationHistory() {
               key={record.id}
               record={record}
               onSimulateAgain={handleSimulateAgain}
+              onDelete={handleDelete}
             />
           ))}
           <View style={{ height: 24 }} />
@@ -200,6 +233,9 @@ const styles = StyleSheet.create({
   cardAccent: {
     width: 4,
     backgroundColor: '#2D6EFF',
+  },
+  deleteBtn: {
+    padding: 4,
   },
   cardBody: {
     flex: 1,
