@@ -13,7 +13,6 @@ import { api } from "../../services/api";
 import { useRouter } from "expo-router";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const anosDisponiveis = Array.from({ length: 2024 - 1974 + 1 }, (_, i) => {
   const ano = String(1974 + i);
@@ -22,7 +21,6 @@ const anosDisponiveis = Array.from({ length: 2024 - 1974 + 1 }, (_, i) => {
 
 export default function MapaScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const mapaRef = useRef<MapaParaibaRef>(null);
 
@@ -85,24 +83,14 @@ export default function MapaScreen() {
     : "Paraíba (total)";
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-        {/* ── HEADER CUSTOMIZADO ── */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <MaterialIcons name="menu" size={22} color="#1E293B" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mapa</Text>
-          <TouchableOpacity style={styles.headerIcon}>
-            <MaterialIcons name="notifications-none" size={22} color="#1E293B" />
-          </TouchableOpacity>
-        </View>
 
-        {/* ── CARD HERO AZUL ── */}
+        {/* ── CARD HERO VERDE ── */}
         <View style={styles.heroContainer}>
           <LinearGradient
-            colors={["#1E40AF", "#2563EB", "#3B82F6"]}
+            colors={["#14532D", "#16A34A", "#22C55E"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroCard}
@@ -168,8 +156,8 @@ export default function MapaScreen() {
             activeOpacity={0.78}
             onPress={() => router.push("/cities")}
           >
-            <View style={[styles.shortcutIcon, { backgroundColor: "#EFF6FF" }]}>
-              <MaterialIcons name="location-city" size={18} color="#2563EB" />
+            <View style={[styles.shortcutIcon, { backgroundColor: "#F0FDF4" }]}>
+              <MaterialIcons name="location-city" size={18} color="#16A34A" />
             </View>
             <View style={styles.shortcutText}>
               <Text style={styles.shortcutTitle}>Explorar cidades</Text>
@@ -182,8 +170,8 @@ export default function MapaScreen() {
             activeOpacity={0.78}
             onPress={() => router.push("/(tabs)/dashboard")}
           >
-            <View style={[styles.shortcutIcon, { backgroundColor: "#EFF6FF" }]}>
-              <MaterialCommunityIcons name="chart-bar" size={18} color="#2563EB" />
+            <View style={[styles.shortcutIcon, { backgroundColor: "#F0FDF4" }]}>
+              <MaterialCommunityIcons name="chart-bar" size={18} color="#16A34A" />
             </View>
             <View style={styles.shortcutText}>
               <Text style={styles.shortcutTitle}>Dashboard</Text>

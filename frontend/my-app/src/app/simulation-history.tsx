@@ -44,7 +44,7 @@ function HistoryCard({
             <MaterialIcons
               name={record.tipoLocalizacao === 'municipio' ? 'location-city' : 'map'}
               size={12}
-              color="#2D6EFF"
+              color="#16A34A"
             />
             <Text style={styles.localizacaoText}>{record.localizacao}</Text>
           </View>
@@ -89,7 +89,7 @@ function HistoryCard({
             onPress={() => onSimulateAgain(record)}
             activeOpacity={0.75}
           >
-            <MaterialIcons name="replay" size={14} color="#2D6EFF" />
+            <MaterialIcons name="replay" size={14} color="#16A34A" />
             <Text style={styles.replayText}>Repetir</Text>
           </TouchableOpacity>
         </View>
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   cardAccent: {
     width: 4,
-    backgroundColor: '#2D6EFF',
+    backgroundColor: '#16A34A',
   },
   deleteBtn: {
     padding: 4,
@@ -251,14 +251,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDF4',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   localizacaoText: {
     fontSize: 12,
-    color: '#2D6EFF',
+    color: '#16A34A',
     fontWeight: '600',
   },
   dateText: {
@@ -308,14 +308,14 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0FDF4',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#BBF7D0',
   },
   replayText: {
     fontSize: 12,
-    color: '#2D6EFF',
+    color: '#16A34A',
     fontWeight: '600',
   },
 });

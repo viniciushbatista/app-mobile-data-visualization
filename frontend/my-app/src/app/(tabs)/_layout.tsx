@@ -1,7 +1,33 @@
-import { Tabs } from "expo-router";
-import { View } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import { TouchableOpacity, View } from "react-native";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSimulationHistory } from "../../shared/hooks/useSimulationHistory";
+
+function InfoButton() {
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      onPress={() => router.push("/(tabs)/sobre")}
+      activeOpacity={0.7}
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        marginRight: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2,
+      }}
+    >
+      <MaterialIcons name="info-outline" size={22} color="#16A34A" />
+    </TouchableOpacity>
+  );
+}
 
 export default function TabsLayout() {
   const { history } = useSimulationHistory();
@@ -11,7 +37,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#2563EB",
+        tabBarActiveTintColor: "#16A34A",
         tabBarInactiveTintColor: "#94A3B8",
         tabBarStyle: {
           height: 62,
@@ -37,6 +63,13 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Mapa",
+          headerShown: true,
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontWeight: "700", color: "#1E293B", fontSize: 17 },
+          headerStyle: { backgroundColor: "#F8FAFC" },
+          headerShadowVisible: false,
+          headerRight: () => <InfoButton />,
+          headerLeft: () => <View style={{ width: 36, marginLeft: 16 }} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="map" size={size} color={color} />
           ),
@@ -47,6 +80,13 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: "Dashboard",
+          headerShown: true,
+          headerTitleAlign: "center",
+          headerTitleStyle: { fontWeight: "700", color: "#1E293B", fontSize: 17 },
+          headerStyle: { backgroundColor: "#F8FAFC" },
+          headerShadowVisible: false,
+          headerRight: () => <InfoButton />,
+          headerLeft: () => <View style={{ width: 36, marginLeft: 16 }} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="chart-bar" size={size} color={color} />
           ),
@@ -59,7 +99,7 @@ export default function TabsLayout() {
           title: "Simulação",
           tabBarBadge: historyCount,
           tabBarBadgeStyle: {
-            backgroundColor: "#2D6EFF",
+            backgroundColor: "#16A34A",
             fontSize: 10,
             minWidth: 18,
             height: 18,
@@ -79,26 +119,7 @@ export default function TabsLayout() {
           headerTitleStyle: { fontWeight: "700", color: "#1E293B", fontSize: 17 },
           headerStyle: { backgroundColor: "#F8FAFC" },
           headerShadowVisible: false,
-          headerRight: () => (
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#FFFFFF",
-                marginRight: 16,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.06,
-                shadowRadius: 4,
-                elevation: 2,
-              }}
-            >
-              <MaterialIcons name="help-outline" size={22} color="#1E293B" />
-            </View>
-          ),
+          headerLeft: () => <View style={{ width: 36, marginLeft: 16 }} />,
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="info-outline" size={size} color={color} />
           ),

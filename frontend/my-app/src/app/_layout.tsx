@@ -37,7 +37,7 @@ export default function RootLayout() {
             headerTitle: "Explorar Cidades",
             headerTitleAlign: "center",
             animation: "slide_from_right",
-            headerTintColor: "#2563EB",
+            headerTintColor: "#16A34A",
             headerStyle: { backgroundColor: "#FFFFFF" },
             headerTitleStyle: { fontWeight: "700", color: "#1E293B" },
           }}
@@ -49,7 +49,7 @@ export default function RootLayout() {
             headerTitle: "Análises por Mesorregião",
             headerTitleAlign: "center",
             animation: "slide_from_right",
-            headerTintColor: "#2563EB",
+            headerTintColor: "#16A34A",
             headerStyle: { backgroundColor: "#FFFFFF" },
             headerTitleStyle: { fontWeight: "700", color: "#1E293B" },
           }}

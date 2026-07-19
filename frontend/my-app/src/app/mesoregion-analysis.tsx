@@ -173,13 +173,13 @@ export default function MesoregionAnalysis() {
                       <Area
                         points={points.value}
                         y0={chartBounds.bottom}
-                        color="rgba(37, 99, 235, 0.10)"
+                        color="rgba(22, 163, 74, 0.10)"
                         animate={{ type: "timing", duration: 300 }}
                         curveType="natural"
                       />
                       <Line
                         points={points.value}
-                        color="#2563EB"
+                        color="#16A34A"
                         strokeWidth={3}
                         animate={{ type: "timing", duration: 300 }}
                         curveType="natural"
@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
   },
   pillSelected: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: "#16A34A",
+    borderColor: "#16A34A",
   },
   pillText: {
     fontSize: 13,

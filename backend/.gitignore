@@ -1,9 +1,23 @@
-# Ambiente virtual — apenas dependências instaladas (pip), sem código do projeto
+# Ambiente virtual
 venv/
 
 # Cache Python
 __pycache__/
 *.py[cod]
+*.pyo
+.pytest_cache/
 
-# Variáveis de ambiente (credenciais)
+# Variáveis de ambiente (credenciais) — NUNCA comitar!
 .env
+
+# Dados binários grandes (Excel com dados do IBGE)
+# ATENÇÃO: mantido no repositório pois é necessário para o endpoint /admin/seed
+# app/data/*.xlsx  <-- descomente esta linha para excluir do Git no futuro
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

@@ -19,7 +19,6 @@ import { ChartCardSkeleton } from "../../shared/components/SkeletonLoader";
 import EmptyState from "../../shared/components/EmptyState";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Item = { meso: string; value: number };
 
@@ -36,6 +35,8 @@ const ANIMAIS = [
   { id: "bovino", label: "Bovino" },
   { id: "caprino", label: "Caprino" },
   { id: "suino", label: "Suíno" },
+  { id: "galinaceo", label: "Galináceo" },
+  { id: "equino", label: "Equino" },
 ];
 
 const LEGENDA = [
@@ -47,7 +48,6 @@ const LEGENDA = [
 
 export default function Dashboard() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const viewRef1 = useRef(null);
 
   const exportarGrafico = async (ref: React.RefObject<any>, nomeArquivo: string) => {
@@ -138,20 +138,9 @@ export default function Dashboard() {
   const font = useFont(require("./../../../assets/static/Inter_18pt-Regular.ttf"));
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* ── HEADER ── */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <MaterialIcons name="menu" size={22} color="#1E293B" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Dashboard</Text>
-          <TouchableOpacity style={styles.headerIcon}>
-            <MaterialIcons name="tune" size={22} color="#1E293B" />
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.content}>
           {/* ── PILL CHIPS DE SUBSTRATO ── */}
@@ -216,7 +205,7 @@ export default function Dashboard() {
                   >
                     {({ points, chartBounds }) => (
                       <Bar
-                        color="#2563EB"
+                        color="#16A34A"
                         chartBounds={chartBounds}
                         points={points.value}
                         barWidth={35}
@@ -258,7 +247,7 @@ export default function Dashboard() {
             onPress={() => router.push("/mesoregion-analysis")}
           >
             <View style={styles.analysisIconWrap}>
-              <MaterialIcons name="history" size={20} color="#2563EB" />
+              <MaterialIcons name="history" size={20} color="#16A34A" />
             </View>
             <View style={styles.analysisText}>
               <Text style={styles.analysisTitle}>Análises por mesorregião</Text>
@@ -325,8 +314,8 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
   },
   pillSelected: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: "#16A34A",
+    borderColor: "#16A34A",
   },
   pillText: {
     fontSize: 13,
@@ -390,7 +379,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#16A34A",
   },
   legendText: {
     fontSize: 12,
@@ -434,7 +423,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F0FDF4",
     alignItems: "center",
     justifyContent: "center",
   },

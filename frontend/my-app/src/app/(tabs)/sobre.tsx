@@ -9,7 +9,7 @@ interface InfoCardProps {
   accentColor?: string;
 }
 
-function InfoCard({ icon, title, children, accentColor = '#2D6EFF' }: InfoCardProps) {
+function InfoCard({ icon, title, children, accentColor = '#16A34A' }: InfoCardProps) {
   return (
     <View style={[styles.card, { borderLeftColor: accentColor }]}>
       <View style={styles.cardHeader}>
@@ -38,7 +38,7 @@ export default function Sobre() {
 
 
       {/* Sobre o Projeto */}
-      <InfoCard icon="info" title="Sobre o Projeto" accentColor="#2D6EFF">
+      <InfoCard icon="info" title="Sobre o Projeto" accentColor="#16A34A">
         <Text style={styles.bodyText}>
           Este aplicativo é resultado de uma pesquisa de Iniciação Científica (PIBIC) da{' '}
           <Text style={styles.bold}>Universidade Federal da Paraíba (UFPB)</Text>, com foco na
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#2D6EFF',
+    borderLeftColor: '#16A34A',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },

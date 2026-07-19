@@ -142,7 +142,7 @@ export default function CitiesScreen() {
           {isSelected && (
             <View style={styles.cityDetail}>
               {item.potencial === null ? (
-                <ActivityIndicator size="small" color="#2563EB" />
+                <ActivityIndicator size="small" color="#16A34A" />
               ) : item.potencial === "sem_dado" ? (
                 <Text style={styles.cityNoData}>
                   Dado não disponível para {anoSelecionado}
@@ -172,7 +172,7 @@ export default function CitiesScreen() {
           <MaterialIcons
             name={isSelected ? "keyboard-arrow-up" : "keyboard-arrow-down"}
             size={18}
-            color={isSelected ? "#2563EB" : "#CBD5E1"}
+            color={isSelected ? "#16A34A" : "#CBD5E1"}
           />
         </View>
       </TouchableOpacity>
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#16A34A",
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
   },
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     color: "#1E293B",
   },
   cityNameSelected: {
-    color: "#2563EB",
+    color: "#16A34A",
   },
   cityMeso: {
     fontSize: 12,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     color: "#1E293B",
   },
   cityPotencialValue: {
-    color: "#2563EB",
+    color: "#16A34A",
     fontWeight: "800",
   },
   cityYear: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   cityTJ: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#2563EB",
+    color: "#16A34A",
   },
   cityYearSmall: {
     fontSize: 11,

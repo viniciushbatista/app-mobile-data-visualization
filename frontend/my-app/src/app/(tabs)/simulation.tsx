@@ -152,7 +152,7 @@ export default function Simulation() {
           style={styles.historyBtn}
           activeOpacity={0.75}
         >
-          <MaterialIcons name="history" size={16} color="#2563EB" />
+          <MaterialIcons name="history" size={16} color="#16A34A" />
           <Text style={styles.historyText}>Histórico</Text>
         </TouchableOpacity>
       </View>
@@ -202,8 +202,8 @@ export default function Simulation() {
                 onChangeText={setQuantidade}
                 keyboardType="numeric"
                 mode="outlined"
-                outlineColor={quantidadeAtiva ? "#2563EB" : "#E2E8F0"}
-                activeOutlineColor="#2563EB"
+                outlineColor={quantidadeAtiva ? "#16A34A" : "#E2E8F0"}
+                activeOutlineColor="#16A34A"
                 style={[styles.textInput, { opacity: quantidadeAtiva ? 1 : 0.6 }]}
                 editable={quantidadeAtiva}
                 error={tentouSimular && !quantidade}
@@ -214,7 +214,7 @@ export default function Simulation() {
               activeOpacity={0.75}
               style={[
                 styles.editBtn,
-                { backgroundColor: quantidadeAtiva ? "#2563EB" : "#E2E8F0" },
+                { backgroundColor: quantidadeAtiva ? "#16A34A" : "#E2E8F0" },
               ]}
             >
               <MaterialIcons
@@ -248,8 +248,8 @@ export default function Simulation() {
                 }}
                 keyboardType="numeric"
                 mode="outlined"
-                outlineColor={anoAtivo ? "#2563EB" : "#E2E8F0"}
-                activeOutlineColor="#2563EB"
+                outlineColor={anoAtivo ? "#16A34A" : "#E2E8F0"}
+                activeOutlineColor="#16A34A"
                 style={[styles.textInput, { opacity: anoAtivo ? 1 : 0.6 }]}
                 editable={anoAtivo}
                 error={tentouSimular && anoInvalido}
@@ -260,7 +260,7 @@ export default function Simulation() {
               activeOpacity={0.75}
               style={[
                 styles.editBtn,
-                { backgroundColor: anoAtivo ? "#2563EB" : "#E2E8F0" },
+                { backgroundColor: anoAtivo ? "#16A34A" : "#E2E8F0" },
               ]}
             >
               <MaterialIcons
@@ -360,7 +360,7 @@ export default function Simulation() {
             onPress={limpar}
             activeOpacity={0.75}
           >
-            <MaterialIcons name="refresh" size={18} color="#2563EB" />
+            <MaterialIcons name="refresh" size={18} color="#16A34A" />
             <Text style={styles.btnLimparText}>Limpar</Text>
           </TouchableOpacity>
         </View>
@@ -397,14 +397,14 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F0FDF4",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#BBF7D0",
   },
   historyText: {
     fontSize: 13,
-    color: "#2563EB",
+    color: "#16A34A",
     fontWeight: "600",
   },
   scrollContent: {
@@ -500,10 +500,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#16A34A",
     borderRadius: 12,
     height: 50,
-    shadowColor: "#2563EB",
+    shadowColor: "#16A34A",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -523,12 +523,12 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: "#2563EB",
+    borderColor: "#16A34A",
     backgroundColor: "#FFFFFF",
   },
   btnLimparText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#2563EB",
+    color: "#16A34A",
   },
 });

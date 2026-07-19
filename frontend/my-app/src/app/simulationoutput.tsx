@@ -293,7 +293,7 @@ export default function SimulationOutput() {
             {/* ── CARD HERO COM GRADIENTE ── */}
             <View style={newStyles.heroContainer}>
               <LinearGradient
-                colors={['#1E3A8A', '#1E40AF', '#2563EB']}
+                colors={['#14532D', '#15803D', '#16A34A']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={newStyles.heroCard}
@@ -359,13 +359,13 @@ export default function SimulationOutput() {
                           <Area
                             points={points.value}
                             y0={chartBounds.bottom}
-                            color="rgba(37, 99, 235, 0.10)"
+                            color="rgba(22, 163, 74, 0.10)"
                             animate={{ type: 'timing', duration: 300 }}
                             curveType="natural"
                           />
                           <Line
                             points={points.value}
-                            color="#2563EB"
+                            color="#16A34A"
                             strokeWidth={3}
                             animate={{ type: 'timing', duration: 300 }}
                             curveType="natural"
@@ -375,7 +375,7 @@ export default function SimulationOutput() {
                               x={firstPress.x.position}
                               y={firstPress.y.value.position}
                               value={firstPress.y.value.value}
-                              color="#2563EB"
+                              color="#16A34A"
                               font={tooltipFont}
                             />
                           )}
@@ -442,7 +442,7 @@ export default function SimulationOutput() {
                     <Text style={styles.statLabel}>Média (valor central)</Text>
                     <Text style={styles.statSubLabel}>Estimativa Prophet para {ano}</Text>
                   </View>
-                  <Text style={[styles.statValue, { color: '#2563EB' }]}>
+                  <Text style={[styles.statValue, { color: '#16A34A' }]}>
                     {fmtCabecas(baselineCabecas)}
                   </Text>
                 </View>
@@ -617,10 +617,10 @@ const newStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#16A34A',
     borderRadius: 12,
     height: 50,
-    shadowColor: '#2563EB',
+    shadowColor: '#16A34A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
