@@ -108,12 +108,6 @@ export default function AppSplash({ onFinish }: AppSplashProps) {
         {/* Linha separadora verde clara */}
         <View style={styles.divider} />
 
-        {/* Logo LASTER */}
-        <Image
-          source={require('../../../assets/image/logo-laster.png')}
-          style={styles.lasterLogo}
-          resizeMode="contain"
-        />
       </Animated.View>
 
       {/* Barra de progresso */}
