@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "my-app",
-    "slug": "my-app",
+    "name": "BioSensus",
+    "slug": "biosensus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "my-app",
+    "scheme": "biosensus",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -23,7 +23,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.myapp"
+      "package": "br.ufpb.laster.biosensus"
     },
     "web": {
       "favicon": "./assets/favicon.png",
