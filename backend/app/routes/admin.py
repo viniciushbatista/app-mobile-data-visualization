@@ -7,6 +7,7 @@ from app.schemas.rebanho import SeedResponse
 from app.services.import_service import importar_excel
 from app.services.prophet_service import limpar_cache as limpar_cache_prophet
 from app.services.energia_service import limpar_cache_energia
+from app.scripts.seed_parametros import executar_seed as seed_parametros
 
 router = APIRouter()
 
@@ -23,6 +24,15 @@ def seed_database(
         )
 
     try:
+        # Tenta popular a tabela de parâmetros químicos (segunda tabela)
+        try:
+            seed_parametros(forcar=forcar)
+        except Exception as e:
+            # Ignora erros se os dados já existirem e não estivermos forçando
+            if forcar:
+                raise e
+
+        # Popula a tabela de rebanho e municípios a partir do Excel
         resultado = importar_excel(db, settings.excel_path, limpar=forcar)
         limpar_cache_prophet()  # Invalida modelos Prophet treinados
         limpar_cache_energia()  # Invalida cache de cálculos de potencial de energia

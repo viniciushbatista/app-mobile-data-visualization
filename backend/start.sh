@@ -7,5 +7,9 @@ set -e
 echo "==> Rodando migrações Alembic..."
 alembic upgrade head
 
-echo "==> Migrações concluídas. Iniciando servidor..."
+echo "==> Rodando seed de parametros_substrato..."
+python -m app.scripts.seed_parametros || echo "==> Parâmetros químicos já populados."
+
+echo "==> Inicialização concluída. Iniciando servidor..."
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+
