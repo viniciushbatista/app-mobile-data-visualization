@@ -3,6 +3,11 @@ import Constants from 'expo-constants';
 
 // Detecção dinâmica de IP para funcionar em Emuladores (Android/iOS) e dispositivos físicos via Expo Go
 const getBaseUrl = () => {
+  if (!__DEV__) {
+    // URL pública da sua API no Render (produção)
+    return 'https://biogas-pb-api.onrender.com';
+  }
+
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
