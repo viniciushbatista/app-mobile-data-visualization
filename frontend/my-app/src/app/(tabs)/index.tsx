@@ -30,7 +30,7 @@ export default function MapaScreen() {
     valor: number;
   } | null>(null);
   const [potencialTotal, setPotencialTotal] = useState<number | null>(null);
-  const [carregandoTotal, setCarregandoTotal] = useState(false);
+  const [carregandoTotal, setCarregandoTotal] = useState(true);
 
   // Carrega potencial total da Paraíba (soma de todas as mesorregiões)
   useEffect(() => {
@@ -101,13 +101,11 @@ export default function MapaScreen() {
             <View style={styles.heroContent}>
               <View style={styles.heroLeft}>
                 <Text style={styles.heroLabel}>Potencial energético total</Text>
-                {carregandoTotal && potencialTotal === null ? (
+                {carregandoTotal || valorExibido === null ? (
                   <ActivityIndicator color="#FFFFFF" size="small" style={{ marginTop: 8 }} />
                 ) : (
                   <Text style={styles.heroValue}>
-                    {valorExibido != null
-                      ? `${valorExibido.toLocaleString("pt-BR")} TJ`
-                      : "—"}
+                    {`${valorExibido.toLocaleString("pt-BR")} TJ`}
                   </Text>
                 )}
                 <View style={styles.heroLocationRow}>

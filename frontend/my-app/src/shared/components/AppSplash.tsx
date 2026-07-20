@@ -30,7 +30,8 @@ export default function AppSplash({ onFinish }: AppSplashProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#FFFFFF',
+    zIndex: 9999,
   },
 });

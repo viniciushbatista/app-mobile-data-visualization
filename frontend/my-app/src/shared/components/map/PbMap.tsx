@@ -226,10 +226,8 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
                   },
                   itemStyle: { 
                     areaColor: '#fadb37',
-                    borderColor: 'transparent',
-                    borderWidth: 0,
-                    shadowBlur: 10,
-                    shadowColor: 'rgba(0,0,0,0.5)'
+                    borderColor: '#1976d2',
+                    borderWidth: 1.5
                   }
                 },
                 label: { show: false },
@@ -321,6 +319,8 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
           scalesPageToFit={false}
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+          nestedScrollEnabled={true}
           style={styles.webview}
         />
       </View>
