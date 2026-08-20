@@ -1,11 +1,38 @@
 import "./../global.css";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppSplash from "../shared/components/AppSplash";
+import {
+  useFonts,
+  Manrope_400Regular,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from "@expo-google-fonts/manrope";
+import * as SplashScreen from "expo-splash-screen";
+
+// Mantém a native splash visível enquanto as fontes carregam
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [splashVisible, setSplashVisible] = useState(true);
+  const [fontsLoaded] = useFonts({
+    Manrope_400Regular,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Esconde a native splash assim que as fontes estiverem prontas
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  // Aguarda fontes antes de renderizar (a native splash cobre enquanto isso)
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>

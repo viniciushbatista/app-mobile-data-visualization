@@ -98,7 +98,7 @@ export default function SimulationOutput() {
   const [limiteSup, setLimiteSup] = useState<number | null>(null);
 
   const anoAlvo = Number(ano) || 2030;
-  const incrementoPercent = Number(quantidade) || 0;
+  const incrementoPercent = Number(quantidade?.replace(',', '.')) || 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -161,27 +161,25 @@ export default function SimulationOutput() {
         setLimiteInf(previsaoAnoAlvo.limite_inferior);
         setLimiteSup(previsaoAnoAlvo.limite_superior);
 
-        // 6. Montar dados do gráfico (cabeças)
+        // 6. Montar dados do gráfico (potencial energético TJ)
         const historicoRecente = resultado.historico.slice(-15);
         const pontos: { ano: number; value: number }[] = [];
 
-        // Histórico real
+        // Histórico real (usa potencial_tj se disponível, senão 0)
         for (const h of historicoRecente) {
-          pontos.push({ ano: h.ano, value: h.quantidade });
+          pontos.push({ ano: h.ano, value: h.potencial_tj ?? 0 });
         }
 
-        // Previsões Prophet (baseline)
+        // Previsões Prophet (baseline em TJ)
         for (const p of resultado.previsoes) {
-          pontos.push({ ano: p.ano, value: p.quantidade_prevista });
+          pontos.push({ ano: p.ano, value: p.potencial_tj ?? 0 });
         }
 
-        // Ponto do cenário do usuário (destacado no ano alvo)
-        // Se o incremento é diferente de 0, adiciona como último ponto
+        // Cenário do usuário: substituir o ponto do ano alvo pelo TJ do cenário
         if (incrementoPercent !== 0) {
-          // Substituir o ponto do ano alvo pelo cenário do usuário
           const idx = pontos.findIndex(pt => pt.ano === anoAlvo);
           if (idx >= 0) {
-            pontos[idx] = { ano: anoAlvo, value: cCabecas };
+            pontos[idx] = { ano: anoAlvo, value: cTJ };
           }
         }
 
@@ -327,7 +325,7 @@ export default function SimulationOutput() {
             <View style={newStyles.sectionCard}>
               <Text style={newStyles.sectionTitle}>Evolução projetada (TJ)</Text>
               <Text style={newStyles.sectionSub}>
-                Cabeças de {substrato} — {anoInicio} → {anoAlvo}
+                Potencial energético de {substrato} — {anoInicio} → {anoAlvo}
               </Text>
 
               <View
@@ -346,9 +344,9 @@ export default function SimulationOutput() {
                         font,
                         tickCount: { x: 5, y: 5 },
                         formatYLabel: (v) => {
-                          if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-                          if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
-                          return String(Math.round(v));
+                          if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k TJ`;
+                          if (v >= 1) return `${v.toFixed(1)} TJ`;
+                          return `${v.toFixed(3)}`;
                         },
                         formatXLabel: (v) => String(v),
                       }}

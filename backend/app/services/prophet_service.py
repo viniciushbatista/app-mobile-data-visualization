@@ -73,6 +73,7 @@ class MetricasValidacao:
 class HistoricoItem:
     ano: int
     quantidade: float
+    potencial_tj: float | None = None
 
 
 @dataclass(frozen=True)
@@ -358,6 +359,38 @@ class ProphetService:
             for _, row in df.iterrows()
         ]
 
+    def _adicionar_energia_historico(
+        self,
+        historico: list[HistoricoItem],
+        substrato: str,
+        *,
+        municipio: str = "",
+        mesorregiao: str = "",
+        codigo_ibge: int = 0,
+    ) -> list[HistoricoItem]:
+        """Calcula potencial TJ para cada ponto historico usando PrevisaoService."""
+        resultado = []
+        for h in historico:
+            try:
+                energia = self.previsao_svc.potencial_de_previsao(
+                    substrato=substrato,
+                    quantidade_prevista=h.quantidade,
+                    municipio=municipio,
+                    mesorregiao=mesorregiao,
+                    codigo_ibge=codigo_ibge,
+                    ano=h.ano,
+                )
+                resultado.append(
+                    HistoricoItem(
+                        ano=h.ano,
+                        quantidade=h.quantidade,
+                        potencial_tj=round(energia.potencial_tj, 4),
+                    )
+                )
+            except ValueError:
+                resultado.append(h)
+        return resultado
+
     def prever_mesorregiao(
         self,
         mesorregiao: str,
@@ -386,11 +419,17 @@ class ProphetService:
 
         metricas = self._validar(df) if incluir_metricas else None
 
+        historico = self._historico_de_df(df)
+        if incluir_energia:
+            historico = self._adicionar_energia_historico(
+                historico, substrato, mesorregiao=mesorregiao
+            )
+
         return PrevisaoCompleta(
             tipo="mesorregiao",
             identificador=mesorregiao,
             substrato=substrato,
-            historico=self._historico_de_df(df),
+            historico=historico,
             previsoes=previsoes,
             metricas=metricas,
         )
@@ -439,11 +478,21 @@ class ProphetService:
 
         metricas = self._validar(df) if incluir_metricas else None
 
+        historico = self._historico_de_df(df)
+        if incluir_energia:
+            historico = self._adicionar_energia_historico(
+                historico,
+                substrato,
+                municipio=municipio_nome,
+                mesorregiao=mesorregiao_nome,
+                codigo_ibge=codigo_ibge,
+            )
+
         return PrevisaoCompleta(
             tipo="municipio",
             identificador=str(codigo_ibge),
             substrato=substrato,
-            historico=self._historico_de_df(df),
+            historico=historico,
             previsoes=previsoes,
             metricas=metricas,
         )

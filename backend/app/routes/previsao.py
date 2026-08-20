@@ -27,7 +27,7 @@ def _para_response(resultado: PrevisaoCompleta) -> PrevisaoResponse:
         identificador=resultado.identificador,
         substrato=resultado.substrato,
         historico=[
-            HistoricoItem(ano=h.ano, quantidade=h.quantidade)
+            HistoricoItem(ano=h.ano, quantidade=h.quantidade, potencial_tj=h.potencial_tj)
             for h in resultado.historico
         ],
         previsoes=[

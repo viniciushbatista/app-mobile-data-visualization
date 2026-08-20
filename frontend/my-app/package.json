@@ -12,12 +12,14 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@expo-google-fonts/manrope": "^0.4.2",
     "@radix-ui/react-slot": "^1.3.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@shopify/react-native-skia": "2.2.12",
     "echarts": "^6.0.0",
     "expo": "~54.0.36",
     "expo-constants": "~18.0.10",
+    "expo-dev-client": "~6.0.21",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.9",
     "expo-linear-gradient": "~15.0.8",

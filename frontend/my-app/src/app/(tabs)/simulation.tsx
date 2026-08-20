@@ -199,7 +199,7 @@ export default function Simulation() {
                 ref={quantidadeRef}
                 placeholder="Ex: 15 (para +15% de rebanho)"
                 value={quantidade}
-                onChangeText={setQuantidade}
+                onChangeText={(text) => setQuantidade(text.replace(',', '.'))}
                 keyboardType="numeric"
                 mode="outlined"
                 outlineColor={quantidadeAtiva ? "#16A34A" : "#E2E8F0"}

@@ -150,6 +150,7 @@ export interface PrevisaoItemResponse {
 export interface HistoricoItemResponse {
   ano: number;
   quantidade: number;
+  potencial_tj: number | null;
 }
 
 export interface MetricasValidacaoResponse {

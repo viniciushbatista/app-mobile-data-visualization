@@ -33,6 +33,9 @@ class PrevisaoItem(BaseModel):
 class HistoricoItem(BaseModel):
     ano: int
     quantidade: float = Field(..., description="Quantidade real (IBGE)")
+    potencial_tj: float | None = Field(
+        None, description="Potencial energético calculado a partir da quantidade real (TJ)"
+    )
 
 
 class PrevisaoResponse(BaseModel):

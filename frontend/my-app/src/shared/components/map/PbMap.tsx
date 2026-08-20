@@ -94,16 +94,16 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
 
         .btn-ano {
           padding: 4px 12px;
-          border: 1.5px solid #1976d2;
+          border: 1.5px solid #14AE5C;
           border-radius: 20px;
           background: #fff;
-          color: #1976d2;
+          color: #14AE5C;
           font-size: 12px;
           cursor: pointer;
         }
 
         .btn-ano.ativo {
-          background: #1976d2;
+          background: #14AE5C;
           color: #fff;
         }
       </style>
@@ -114,7 +114,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
 
       <script>
         const colorSchemes = {
-          blue: ['#e3f2fd', '#90caf9', '#42a5f5', '#1976d2', '#0d47a1']
+          green: ['#e8f8ef', '#86d9a8', '#38c172', '#14AE5C', '#0a6b38']
         };
 
         window.dadosMapa = [
@@ -197,7 +197,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
                 trigger: 'item',
                 formatter: '{b}: {c}',
                 backgroundColor: 'rgba(0,0,0,0.7)',
-                borderColor: '#1976d2',
+                borderColor: '#14AE5C',
                 borderWidth: 1,
                 textStyle: { color: '#fff' }
               },
@@ -205,7 +205,7 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
                 min: 0,
                 max: maxVal,
                 text: ['Alto', 'Baixo'],
-                inRange: { color: colorSchemes.blue },
+                inRange: { color: colorSchemes.green },
                 orient: 'horizontal',
                 left: 'center',
                 bottom: 5,
@@ -226,13 +226,13 @@ const MapaParaiba = forwardRef<MapaParaibaRef, MapaParaibaProps>(
                   },
                   itemStyle: { 
                     areaColor: '#fadb37',
-                    borderColor: '#1976d2',
+                    borderColor: '#0a6b38',
                     borderWidth: 1.5
                   }
                 },
                 label: { show: false },
                 itemStyle: {
-                  areaColor: '#e3f2fd',
+                  areaColor: '#e8f8ef',
                   borderColor: '#fff',
                   borderWidth: 1.5
                 },
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     right: 16,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#14AE5C',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
